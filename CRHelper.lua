@@ -385,6 +385,9 @@ function CRHelper:RestorePosition()
 	local frostLeft = self.savedVariables.frostLeft
 	local frostTop = self.savedVariables.frostTop
 
+	local interruptLeft = self.savedVariables.InterruptLeft
+	local InterruptTop	= self.savedVariables.InterruptTop
+
 	if (shockLeft or shockTop) then
 		CRShock:ClearAnchors()
 		CRShock:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, shockLeft, shockTop)
@@ -398,6 +401,11 @@ function CRHelper:RestorePosition()
 	if (frostLeft or frostTop) then
 		CRFrost:ClearAnchors()
 		CRFrost:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, frostLeft, frostTop)
+	end
+
+	if ( interruptLeft and interruptTop) then
+		CRInterrupt:ClearAnchors()
+		CRInterrupt:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, interruptLeft, interruptTop)
 	end
 end
 
