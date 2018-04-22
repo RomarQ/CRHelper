@@ -393,6 +393,8 @@ function CRHelper:RestorePosition()
 
 	local interruptLeft = self.savedVariables.interruptLeft
 	local interruptTop	= self.savedVariables.interruptTop
+	
+	local fontSize = self.savedVariables.fontSize
 
 	if (shockLeft or shockTop) then
 		CRShock:ClearAnchors()
@@ -412,6 +414,30 @@ function CRHelper:RestorePosition()
 	if (interruptLeft and interruptTop) then
 		CRInterrupt:ClearAnchors()
 		CRInterrupt:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, interruptLeft, interruptTop)
+	end
+	
+	-- Restore font
+	if (fontSize == 'small' or fontSize == 'medium' or fontSize == 'large') then
+		CRHelper:setFontSize(fontSize)
+	end
+end
+
+function CRHelper:setFontSize(fontSize)
+	if (fontSize == 'small') then
+		CRShock_Timer:SetFont('$(BOLD_FONT)|$(KB_28)|soft-shadow-thick')
+		CRFire_Timer:SetFont('$(BOLD_FONT)|$(KB_28)|soft-shadow-thick')
+		CRFrost_Timer:SetFont('$(BOLD_FONT)|$(KB_28)|soft-shadow-thick')
+		CRInterrupt_Warning:SetFont('$(BOLD_FONT)|$(KB_28)|soft-shadow-thick')
+	elseif (fontSize == 'medium') then
+		CRShock_Timer:SetFont('$(BOLD_FONT)|$(KB_36)|soft-shadow-thick')
+		CRFire_Timer:SetFont('$(BOLD_FONT)|$(KB_36)|soft-shadow-thick')
+		CRFrost_Timer:SetFont('$(BOLD_FONT)|$(KB_36)|soft-shadow-thick')
+		CRInterrupt_Warning:SetFont('$(BOLD_FONT)|$(KB_36)|soft-shadow-thick')
+	else
+		CRShock_Timer:SetFont('$(BOLD_FONT)|$(KB_54)|soft-shadow-thick')
+		CRFire_Timer:SetFont('$(BOLD_FONT)|$(KB_54)|soft-shadow-thick')
+		CRFrost_Timer:SetFont('$(BOLD_FONT)|$(KB_54)|soft-shadow-thick')
+		CRInterrupt_Warning:SetFont('$(BOLD_FONT)|$(KB_54)|soft-shadow-thick')
 	end
 end
 
@@ -448,6 +474,24 @@ SLASH_COMMANDS["/cr"] = function ( command )
 		CRInterrupt_Warning:SetAlpha(0)
 		CRInterrupt_Warning:SetText("")
 		return
+	end
+
+	if ( command == 'small') then
+		CRHelper:setFontSize('small')
+		d('Font size has been set to small.')
+		CRHelper.savedVariables.fontSize = 'small'
+	end
+	
+	if ( command == 'medium') then
+		CRHelper:setFontSize('medium')
+		d('Font size has been set to medium.')
+		CRHelper.savedVariables.fontSize = 'medium'
+	end
+
+	if ( command == 'large') then
+		CRHelper:setFontSize('large')
+		d('Font size has been set to large.')
+		CRHelper.savedVariables.fontSize = 'large'
 	end
 
 	if ( command == 'reset' ) then
