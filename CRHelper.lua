@@ -148,11 +148,7 @@ function CRHelper.RoaringFlare(eventCode, result, isError, abilityName, abilityG
 	CRHelper.fireCount = CRHelper.RoaringFlareDuration -- countdown
 
 	CRFire_Timer:SetAlpha(1)
-	if ( zo_strformat( '<<!a:1>>' , CRHelper.fireTargetName ) == 'Mashye' ) then
-		CRFire_Timer:SetText( 'Mashi |cCC0000 is being penetrated in |r |cFF4500<<2>>|r ' .. CRHelper.fireCount )
-	else
-		CRFire_Timer:SetText(zo_strformat(CRHelper.RoaringFlareMessage, CRHelper.fireTargetName, CRHelper.fireCount))
-	end
+	CRFire_Timer:SetText(zo_strformat(CRHelper.RoaringFlareMessage, CRHelper.fireTargetName, CRHelper.fireCount))
 	PlaySound(SOUNDS.DUEL_START)
 
 	EVENT_MANAGER:UnregisterForUpdate("FireTimer")
