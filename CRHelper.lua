@@ -458,8 +458,8 @@ SLASH_COMMANDS["/cr"] = function ( command )
 		CRHelper.savedVariables.frostLeft = nil
 		CRHelper.savedVariables.frostTop = nil
 
-		CRHelper.savedVariables.InterruptLeft = nil
-		CRHelper.savedVariables.InterruptTop = nil
+		CRHelper.savedVariables.interruptLeft = nil
+		CRHelper.savedVariables.interruptTop = nil
 		return
 	end
 
