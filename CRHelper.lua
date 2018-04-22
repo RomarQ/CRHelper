@@ -374,6 +374,11 @@ function CRHelper:OnFrostControlMoveStop()
 	CRHelper.savedVariables.frostTop = CRFrost:GetTop()
 end
 
+function CRHelper:OnInterruptMoveStop()
+	CRHelper.savedVariables.interruptLeft = CRInterrupt:GetLeft()
+	CRHelper.savedVariables.interruptTop = CRInterrupt:GetTop()
+end
+
 -- Gets the saved window position and updates it
 function CRHelper:RestorePosition()
 	local shockLeft = self.savedVariables.shockLeft
@@ -385,8 +390,8 @@ function CRHelper:RestorePosition()
 	local frostLeft = self.savedVariables.frostLeft
 	local frostTop = self.savedVariables.frostTop
 
-	local interruptLeft = self.savedVariables.InterruptLeft
-	local InterruptTop	= self.savedVariables.InterruptTop
+	local interruptLeft = self.savedVariables.interruptLeft
+	local interruptTop	= self.savedVariables.interruptTop
 
 	if (shockLeft or shockTop) then
 		CRShock:ClearAnchors()
@@ -403,7 +408,7 @@ function CRHelper:RestorePosition()
 		CRFrost:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, frostLeft, frostTop)
 	end
 
-	if ( interruptLeft and interruptTop) then
+	if (interruptLeft and interruptTop) then
 		CRInterrupt:ClearAnchors()
 		CRInterrupt:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, interruptLeft, interruptTop)
 	end
