@@ -350,8 +350,9 @@ function CRHelper.ShadowSplashCast(eventCode, result, isError, abilityName, abil
 		return
 	end
 
-	CRInterrupt_Warning:SetText("Interrupt the Hypotard!")
+	CRInterrupt_Warning:SetText("Interrupt the Hypnotard!")
 	CRInterrupt_Warning:SetAlpha(1)
+	PlaySound(SOUNDS.SKILL_LINE_ADDED)
 
 end
 
