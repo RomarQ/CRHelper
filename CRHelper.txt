@@ -1,0 +1,10 @@
+## Title: Cloudrest Helper
+## APIVersion: 100022
+## Author: andy.s
+## SavedVariables: CRHelperSavedVariables
+
+libs/LibStub/LibStub.lua
+libs/LibUnits/LibUnits.lua
+
+CRHelper.xml
+CRHelper.lua

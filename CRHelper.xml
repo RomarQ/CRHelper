@@ -1,0 +1,61 @@
+<GuiXml>
+  <Controls>
+
+    <TopLevelControl name="CRShock"  mouseEnabled="true" movable="true" clampedToScreen="true" >
+	  <Dimensions x="200" y="50" />
+      <Anchor point="BOTTOM" relativeTo="GuiRoot" relativePoint="CENTER" offsetX="0" offsetY="-270" />
+      <OnMoveStop>
+        CRHelper.OnShockControlMoveStop()
+      </OnMoveStop>
+      <Controls>
+        <Label name="$(parent)_Timer" width="200" height="50" font="$(BOLD_FONT)|$(KB_54)|soft-shadow-thick" inheritAlpha="true" color="FFFFFF" wrapMode="TRUNCATE" verticalAlignment="TOP" horizontalAlignment="LEFT">
+          <Anchor point="TOP" relativeTo="$(parent)" relativePoint="TOP" />
+        </Label>
+      </Controls>
+    </TopLevelControl>
+
+    <TopLevelControl name="CRFire"  mouseEnabled="true" movable="true" clampedToScreen="true" >
+	  <Dimensions x="200" y="50" />
+      <Anchor point="BOTTOM" relativeTo="GuiRoot" relativePoint="CENTER" offsetX="0" offsetY="-200" />
+      <OnMoveStop>
+        CRHelper.OnFireControlMoveStop()
+      </OnMoveStop>
+      <Controls>
+        <Label name="$(parent)_Timer" width="200" height="50" font="$(BOLD_FONT)|$(KB_54)|soft-shadow-thick" inheritAlpha="true" color="FFA500" wrapMode="TRUNCATE" verticalAlignment="TOP" horizontalAlignment="LEFT">
+          <Anchor point="TOP" relativeTo="$(parent)" relativePoint="TOP" />
+        </Label>
+      </Controls>
+    </TopLevelControl>
+
+    <TopLevelControl name="CRFrost"  mouseEnabled="true" movable="true" clampedToScreen="true" >
+	  <Dimensions x="200" y="50" />
+      <Anchor point="BOTTOM" relativeTo="GuiRoot" relativePoint="CENTER" offsetX="0" offsetY="-130" />
+      <OnMoveStop>
+        CRHelper.OnFrostControlMoveStop()
+      </OnMoveStop>
+      <Controls>
+        <Label name="$(parent)_Timer" width="200" height="50" font="$(BOLD_FONT)|$(KB_54)|soft-shadow-thick" inheritAlpha="true" color="00FFFF" wrapMode="TRUNCATE" verticalAlignment="TOP" horizontalAlignment="LEFT">
+          <Anchor point="TOP" relativeTo="$(parent)" relativePoint="TOP" />
+        </Label>
+      </Controls>
+    </TopLevelControl>
+	
+    <TopLevelControl name="CRInterrupt" mouseEnabled="true" movable="true" clampedToScreen="true" >
+      <Dimensions x="200" y="50" />
+      <Anchor  point="BOTTOM" relativeTo="GuiRoot" relativePoint="CENTER" offsetX="50" offsetY="-30" />
+
+      <OnMoveStop>
+        CRHelper.OnInterruptMoveStop()
+      </OnMoveStop>
+
+      <Controls>
+        <Label name="$(parent)_Warning" height="50" width="200" font="$(BOLD_FONT)|$(KB_54)|soft-shadow-thick" inheritAlpha="true" color="FF1493" wrapMode="TRUNCATE" verticalAlignment="TOP" horizontalAlignment="LEFT" >
+
+          <Anchor relativePoint="TOP" relativeTo="$(parent)" point="TOP"/>
+
+        </Label>
+      </Controls>
+    </TopLevelControl>
+
+  </Controls>
+</GuiXml>
