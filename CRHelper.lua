@@ -61,14 +61,14 @@ function CRHelper:Initialize()
 	
 	CRHelper:registerHoarfrost()
 
-	EVENT_MANAGER:RegisterForEvent("beam", EVENT_COMBAT_EVENT, self.beam)
-	EVENT_MANAGER:AddFilterForEvent("beam", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, 105161)
-
 	EVENT_MANAGER:RegisterForEvent("CloudrestWeaponSwap", EVENT_ACTIVE_WEAPON_PAIR_CHANGED, CRHelper.WeaponSwap)
 	EVENT_MANAGER:AddFilterForEvent("CloudrestWeaponSwap", EVENT_ACTIVE_WEAPON_PAIR_CHANGED, REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER)
 
 	EVENT_MANAGER:RegisterForEvent("ShadowSplashCast", EVENT_COMBAT_EVENT, self.ShadowSplashCast)
 	EVENT_MANAGER:AddFilterForEvent("ShadowSplashCast", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, CRHelper.shadowSplashCastId)
+
+	EVENT_MANAGER:RegisterForEvent("beam", EVENT_COMBAT_EVENT, self.beam)
+	EVENT_MANAGER:AddFilterForEvent("beam", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, CRHelper.beamId )
 
 	-- Gets configs from savedVariables, if file doesn't exist then also creates it
 	self.savedVariables = ZO_SavedVars:New("CRHelperSavedVariables", 1, nil, {})
@@ -360,13 +360,13 @@ end
 function CRHelper.beam(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
 
 	if ( result == 2250 ) then
-		CRLink_Warning:SetAlpha(0)
+		CRBeam_Warning:SetAlpha(0)
 		return
 	end
 
 	if ( targetType == 1 ) then
-        CRLink_Warning:SetText("BEAM ON ME")
-        CRLink_Warning:SetAlpha(1)
+        CRBeam_Warning:SetText( ' Beam is on you, move out of the group! ')
+        CRBeam_Warning:SetAlpha(1)
         PlaySound(SOUNDS.SKILL_LINE_ADDED)
     end
 
@@ -396,6 +396,11 @@ function CRHelper:OnInterruptMoveStop()
 	CRHelper.savedVariables.interruptTop = CRInterrupt:GetTop()
 end
 
+function CRHelper:OnBeamMoveStop()
+	CRHelper.savedVariables.beamLeft = CRBeam:GetLeft()
+	CRHelper.savedVariables.beamTop = CRBeam:GetTop()
+end
+
 -- Gets the saved window position and updates it
 function CRHelper:RestorePosition()
 	local shockLeft = self.savedVariables.shockLeft
@@ -409,6 +414,9 @@ function CRHelper:RestorePosition()
 
 	local interruptLeft = self.savedVariables.interruptLeft
 	local interruptTop	= self.savedVariables.interruptTop
+
+	local beamLeft = self.savedVariables.beamLeft
+	local beamTop = self.savedVariables.beamTop
 	
 	local fontSize = self.savedVariables.fontSize
 
@@ -430,6 +438,11 @@ function CRHelper:RestorePosition()
 	if (interruptLeft and interruptTop) then
 		CRInterrupt:ClearAnchors()
 		CRInterrupt:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, interruptLeft, interruptTop)
+	end
+
+	if (beamLeft and beamTop) then
+		CRBeam:ClearAnchors()
+		CRBeam:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, beamLeft, BeamTop)
 	end
 	
 	-- Restore font
@@ -473,6 +486,10 @@ SLASH_COMMANDS["/cr"] = function ( command )
 
 		CRInterrupt_Warning:SetAlpha(1)
 		CRInterrupt_Warning:SetText("Interrupt the Hypnotard!")
+
+		CRBeam_Warning:SetAlpha(1)
+		CRBeam_Warning:SetText( 'Beam is on you, move out of the group!' )
+
 		return
 	end
 
@@ -489,6 +506,9 @@ SLASH_COMMANDS["/cr"] = function ( command )
 
 		CRInterrupt_Warning:SetAlpha(0)
 		CRInterrupt_Warning:SetText("")
+
+		CRBeam_Warning:SetAlpha(0)
+		CRBeam_Warning:SetText( '' )
 		return
 	end
 
@@ -518,9 +538,10 @@ SLASH_COMMANDS["/cr"] = function ( command )
 		CRHelper.savedVariables.fireTop = nil
 		CRHelper.savedVariables.frostLeft = nil
 		CRHelper.savedVariables.frostTop = nil
-
 		CRHelper.savedVariables.interruptLeft = nil
 		CRHelper.savedVariables.interruptTop = nil
+		CRHelper.savedVariables.beamLeft = nil
+		CRHelper.savedVariables.beamTop = nil
 		return
 	end
 

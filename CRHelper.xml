@@ -57,7 +57,7 @@
       </Controls>
     </TopLevelControl>
 
-    <TopLevelControl name="CRLink" mouseEnabled="true" movable="true" clampedToScreen="true" >
+    <TopLevelControl name="CRBeam" mouseEnabled="true" movable="true" clampedToScreen="true" >
       <Dimensions x="200" y="50" />
       <Anchor  point="BOTTOM" relativeTo="GuiRoot" relativePoint="CENTER" offsetX="50" offsetY="-30" />
 
