@@ -16,7 +16,7 @@ CRHelper.HoarfrostIds = {103760, 105151}
 CRHelper.HoarfrostSynergyIds = {103697}
 CRHelper.HoarfrostDuration = 10 -- how many seconds until synergy available
 CRHelper.HoarfrostMessage = "|c00FFFF<<a:1>>|r: |c1E90FF<<2>>|r" -- name: <<1>> countdown: <<2>>
-CRHelper.HoarfrostSynergyMessage = "|c00FFFF<<a:1>>|r DROPS FROST!" -- name: <<1>>
+CRHelper.HoarfrostSynergyMessage = "|c1E90FF<<a:1>>|r DROPS FROST!" -- name: <<1>>
 
 CRHelper.name = "CRHelper"
 
@@ -333,7 +333,7 @@ function CRHelper.UpdateShockTimer()
 		EVENT_MANAGER:UnregisterForUpdate("ShockTimer")
 	end
     CRShock_Timer:SetText(CRHelper.swapped and "NO SWAP: " .. string.format("%01d", CRHelper.shockCount) or "SWAP NOW!")
-	PlaySound(SOUNDS.DUEL_BOUNDARY_WARNING)
+	PlaySound(SOUNDS.COUNTDOWN_TICK)
 end
 
 function CRHelper:fadeOut(timer)
@@ -374,11 +374,6 @@ function CRHelper:OnFrostControlMoveStop()
 	CRHelper.savedVariables.frostTop = CRFrost:GetTop()
 end
 
-function CRHelper:OnInterruptControlMoveStop()
-	CRHelper.savedVariables.InterruptLeft = CRInterrupt:GetLeft()
-	CRHelper.savedVariables.InterruptTop = CRInterrupt:GetTop()
-end
-
 -- Gets the saved window position and updates it
 function CRHelper:RestorePosition()
 	local shockLeft = self.savedVariables.shockLeft
@@ -389,9 +384,6 @@ function CRHelper:RestorePosition()
 	
 	local frostLeft = self.savedVariables.frostLeft
 	local frostTop = self.savedVariables.frostTop
-
-	local interruptLeft = self.savedVariables.InterruptLeft
-	local InterruptTop	= self.savedVariables.InterruptTop
 
 	if (shockLeft or shockTop) then
 		CRShock:ClearAnchors()
@@ -407,12 +399,6 @@ function CRHelper:RestorePosition()
 		CRFrost:ClearAnchors()
 		CRFrost:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, frostLeft, frostTop)
 	end
-
-	if ( interruptLeft and interruptTop) then
-		CRInterrupt:ClearAnchors()
-		CRInterrupt:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, interruptLeft, interruptTop)
-	end
-
 end
 
 -- SLASH CUSTOM COMMANDS
@@ -454,10 +440,8 @@ SLASH_COMMANDS["/cr"] = function ( command )
 		d("Positions reset. Reload UI.")
 		CRHelper.savedVariables.shockLeft = nil
 		CRHelper.savedVariables.shockTop = nil
-
 		CRHelper.savedVariables.fireLeft = nil
 		CRHelper.savedVariables.fireTop = nil
-
 		CRHelper.savedVariables.frostLeft = nil
 		CRHelper.savedVariables.frostTop = nil
 
