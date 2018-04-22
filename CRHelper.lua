@@ -36,6 +36,8 @@ CRHelper.frostCount = 0  -- Hoarfrost counter
 CRHelper.frostAlpha = 1  -- Hoarfrost counter opacity
 CRHelper.frostSynergy = false -- Hoarfrost synergy available
 
+CRHelper.beamId = 105161
+
 CRHelper.shadowSplashCastId = 105123
 CRHelper.shadowSplashCastAlpha = 1
 
@@ -58,6 +60,9 @@ function CRHelper:Initialize()
 	CRHelper:registerRoaringFlare()
 	
 	CRHelper:registerHoarfrost()
+
+	EVENT_MANAGER:RegisterForEvent("beam", EVENT_COMBAT_EVENT, self.beam)
+	EVENT_MANAGER:AddFilterForEvent("beam", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, 105161)
 
 	EVENT_MANAGER:RegisterForEvent("CloudrestWeaponSwap", EVENT_ACTIVE_WEAPON_PAIR_CHANGED, CRHelper.WeaponSwap)
 	EVENT_MANAGER:AddFilterForEvent("CloudrestWeaponSwap", EVENT_ACTIVE_WEAPON_PAIR_CHANGED, REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER)
@@ -349,6 +354,21 @@ function CRHelper.ShadowSplashCast(eventCode, result, isError, abilityName, abil
 	CRInterrupt_Warning:SetText("Interrupt the Hypnotard!")
 	CRInterrupt_Warning:SetAlpha(1)
 	PlaySound(SOUNDS.SKILL_LINE_ADDED)
+
+end
+
+function CRHelper.beam(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
+
+	if ( result == 2250 ) then
+		CRLink_Warning:SetAlpha(0)
+		return
+	end
+
+	if ( targetType == 1 ) then
+        CRLink_Warning:SetText("BEAM ON ME")
+        CRLink_Warning:SetAlpha(1)
+        PlaySound(SOUNDS.SKILL_LINE_ADDED)
+    end
 
 end
 

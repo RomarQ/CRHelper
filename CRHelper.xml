@@ -57,5 +57,22 @@
       </Controls>
     </TopLevelControl>
 
+    <TopLevelControl name="CRLink" mouseEnabled="true" movable="true" clampedToScreen="true" >
+      <Dimensions x="200" y="50" />
+      <Anchor  point="BOTTOM" relativeTo="GuiRoot" relativePoint="CENTER" offsetX="50" offsetY="-30" />
+
+      <OnMoveStop>
+        CRHelper.OnInterruptMoveStop()
+      </OnMoveStop>
+
+      <Controls>
+        <Label name="$(parent)_Warning" height="50" width="200" font="$(BOLD_FONT)|$(KB_54)|soft-shadow-thick" inheritAlpha="true" color="FF1493" wrapMode="TRUNCATE" verticalAlignment="TOP" horizontalAlignment="LEFT" >
+
+          <Anchor relativePoint="TOP" relativeTo="$(parent)" point="TOP"/>
+
+        </Label>
+      </Controls>
+    </TopLevelControl>
+
   </Controls>
 </GuiXml>
