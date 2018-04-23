@@ -514,12 +514,12 @@ end
 SLASH_COMMANDS["/cr"] = function ( command )
 
 	if ( command == 'unlock' ) then
+
+		CRHelper.FireTimerShow("FIRE INC")
+	
 		-- Show dummy text so user can move the window
 		CRShock_Timer:SetAlpha(1)
 		CRShock_Timer:SetText("SHOCK INC")
-		
-		CRFire_Timer:SetAlpha(1)
-		CRFire_Timer:SetText("FIRE INC")
 		
 		CRFrost_Timer:SetAlpha(1)
 		CRFrost_Timer:SetText("FROST INC")
@@ -534,12 +534,11 @@ SLASH_COMMANDS["/cr"] = function ( command )
 	end
 
 	if ( command == 'lock' ) then
-		-- Hide dummy
+
+		CRHelper.FireTimerHide()
+
 		CRShock_Timer:SetAlpha(0)
 		CRShock_Timer:SetText("")
-
-		CRFire_Timer:SetAlpha(0)
-		CRFire_Timer:SetText("")
 		
 		CRFrost_Timer:SetAlpha(0)
 		CRFrost_Timer:SetText("")
