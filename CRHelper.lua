@@ -1,15 +1,24 @@
 CRHelper = {}
 
+CRHelper.name = "CRHelper"
+
+----- ROARING FLARE (FIRE) -----
+
+CRHelper.roaringFlareId = 103531 -- {103531, 103922, 103921}
+CRHelper.roaringFlareDuration = 6 -- countdown for timer
+CRHelper.roaringFlareMessage = "|cFFA500<<a:1>>|r: |cFF4500<<2>>|r" -- name: <<1>> countdown: <<2>>
+
+CRHelper.fireStarted = false
+CRHelper.fireTargetName = "" -- Roaring Flare target name
+CRHelper.fireCount = 0  -- Roaring Flare counter
+
+----- /ROARING FLARE (FIRE) -----
+
 -- Shock animation started on a player
 CRHelper.VoltaicCurrentIds = {103895, 103896} 
 
 -- Big shock aoe on a player (lasts 10 seconds)
 CRHelper.VoltaicOverloadIds = {87346} 
-
--- Fire animation started on a player
-CRHelper.RoaringFlareIds = {103531, 103922, 103921}
-CRHelper.RoaringFlareDuration = 6 -- countdown for timer
-CRHelper.RoaringFlareMessage = "|cFFA500<<a:1>>|r: |cFF4500<<2>>|r" -- name: <<1>> countdown: <<2>>
 
 -- Frost animation started on a player
 CRHelper.HoarfrostIds = {103760, 105151}
@@ -18,16 +27,9 @@ CRHelper.HoarfrostDuration = 10 -- how many seconds until synergy available
 CRHelper.HoarfrostMessage = "|c00FFFF<<a:1>>|r: |c1E90FF<<2>>|r" -- name: <<1>> countdown: <<2>>
 CRHelper.HoarfrostSynergyMessage = "|c1E90FF<<a:1>>|r DROPS FROST!" -- name: <<1>>
 
-CRHelper.name = "CRHelper"
-
 CRHelper.shockCount = 0  -- Voltaic Overload counter
 CRHelper.shockAlpha = 1  -- Voltaic Overload counter opacity
 CRHelper.swapped = false -- Whether a player swapped his weapons after getting Voltaic Overload debuff
-
-CRHelper.fireStarted = false
-CRHelper.fireTargetName = "" -- Roaring Flare target name
-CRHelper.fireCount = 0  -- Roaring Flare counter
-CRHelper.fireAlpha = 1  -- RoaringFlare counter opacity
 
 CRHelper.frostStarted = false
 CRHelper.frostEffectGained = false
@@ -45,20 +47,19 @@ LUNIT = LibStub:GetLibrary("LibUnits")
 
 function CRHelper:Initialize()
 
+	CRFire:SetHidden(true)
+
 	CRShock_Timer:SetText("")
 	CRShock_Timer:SetAlpha(0)
 
-	CRFire_Timer:SetText("")
-	CRFire_Timer:SetAlpha(0)
-
 	CRFrost_Timer:SetText("")
 	CRFrost_Timer:SetAlpha(0)
-	
+
+	CRHelper:RegisterRoaringFlare()
+
 	CRHelper:registerVoltaicCurrent()
 	CRHelper:registerVoltaicOverload()
 
-	CRHelper:registerRoaringFlare()
-	
 	CRHelper:registerHoarfrost()
 
 	EVENT_MANAGER:RegisterForEvent("CloudrestWeaponSwap", EVENT_ACTIVE_WEAPON_PAIR_CHANGED, CRHelper.WeaponSwap)
@@ -93,16 +94,6 @@ function CRHelper:registerVoltaicOverload()
 	for i, id in ipairs(self.VoltaicOverloadIds) do
 		EVENT_MANAGER:RegisterForEvent("VoltaicOverload" .. i, EVENT_EFFECT_CHANGED, self.VoltaicOverload)
 		EVENT_MANAGER:AddFilterForEvent("VoltaicOverload" .. i, EVENT_EFFECT_CHANGED, REGISTER_FILTER_ABILITY_ID, id)
-	end
-
-end
-
-function CRHelper:registerRoaringFlare()
-
-	-- Register Roaring Flare event handler for each possible id
-	for i, id in ipairs(self.RoaringFlareIds) do
-		EVENT_MANAGER:RegisterForEvent("RoaringFlare" .. i, EVENT_COMBAT_EVENT, self.RoaringFlare)
-		EVENT_MANAGER:AddFilterForEvent("RoaringFlare" .. i, EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, id)
 	end
 
 end
@@ -145,22 +136,78 @@ function CRHelper.VoltaicCurrent(eventCode, result, isError, abilityName, abilit
 
 end
 
+----- ROARING FLARE (FIRE) ------
+
+function CRHelper:RegisterRoaringFlare()
+
+	EVENT_MANAGER:RegisterForEvent("RoaringFlare", EVENT_COMBAT_EVENT, self.RoaringFlare)
+	EVENT_MANAGER:AddFilterForEvent("RoaringFlare", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, self.roaringFlareId)	
+
+end
+
 function CRHelper.RoaringFlare(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
 
-	if (CRHelper.fireStarted) then return end
-	
-	CRHelper.fireTargetName = LUNIT:GetNameForUnitId(targetUnitId) -- get name of target
-	CRHelper.fireCount = CRHelper.RoaringFlareDuration -- countdown
+	if (result == ACTION_RESULT_BEGIN) then
 
-	CRFire_Timer:SetAlpha(1)
-	CRFire_Timer:SetText(zo_strformat(CRHelper.RoaringFlareMessage, CRHelper.fireTargetName, CRHelper.fireCount))
-	PlaySound(SOUNDS.DUEL_START)
+		CRHelper.fireStarted = true
+		CRHelper.fireTargetName = LUNIT:GetNameForUnitId(targetUnitId) -- get name of target
+		CRHelper.fireCount = CRHelper.roaringFlareDuration -- countdown
 
-	EVENT_MANAGER:UnregisterForUpdate("FireTimer")
-	EVENT_MANAGER:RegisterForUpdate("FireTimer", 1000, CRHelper.UpdateFireTimer)
+		EVENT_MANAGER:UnregisterForUpdate("FireTimer")
+		EVENT_MANAGER:RegisterForUpdate("FireTimer", 1000, CRHelper.FireTimerTick)
+
+		CRHelper.FireTimerShow(zo_strformat(CRHelper.roaringFlareMessage, CRHelper.fireTargetName, CRHelper.fireCount))
+		PlaySound(SOUNDS.DUEL_START)
+
+	elseif (result == ACTION_RESULT_EFFECT_FADED) then
+
+		CRHelper.fireStarted = false
+		CRHelper.FireTimerStopAndHide()
+
+	end
 
 	CRHelper.fireStarted = true
 end
+
+function CRHelper.FireTimerTick()
+
+	CRHelper.fireCount = CRHelper.fireCount - 1
+
+	if (CRHelper.fireCount < 0) then
+		CRHelper.FireTimerStopAndHide()
+	else
+		CRFire_Timer:SetText(zo_strformat(CRHelper.roaringFlareMessage, CRHelper.fireTargetName, CRHelper.fireCount))
+		PlaySound(SOUNDS.DUEL_BOUNDARY_WARNING)
+	end
+
+end
+
+function CRHelper.FireTimerStopAndHide()
+
+	EVENT_MANAGER:UnregisterForUpdate("FireTimer")
+	CRHelper.fireCount = 0
+	CRHelper.FireTimerHide()
+
+end
+
+-- Show fire timer with optional text
+function CRHelper.FireTimerShow(text)
+
+	CRFire:SetHidden(false)
+
+	if (text ~= nil) then
+		CRFire_Timer:SetText(text)
+	end
+
+end
+
+function CRHelper.FireTimerHide()
+
+	CRFire:SetHidden(true)
+
+end
+
+----- ROARING FLARE (FIRE) ------
 
 function CRHelper.Hoarfrost(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
 
@@ -259,29 +306,6 @@ function CRHelper.UpdateFrostTimer()
 	end
 end
 
-function CRHelper.UpdateFireTimer()
-	CRHelper.fireCount = CRHelper.fireCount - 1
-	if (CRHelper.fireCount < 0) then
-		CRHelper.fireCount = 0
-		EVENT_MANAGER:UnregisterForUpdate("FireTimer")
-		-- fade out
-		EVENT_MANAGER:RegisterForUpdate("FireTimerFadeOut", 50,
-			function()
-				CRHelper.fireAlpha = CRHelper.fireAlpha - 0.05
-				if (CRHelper.fireAlpha <= 0) then
-					CRHelper.fireAlpha = 0
-					CRHelper.fireStarted = false
-					EVENT_MANAGER:UnregisterForUpdate("FireTimerFadeOut")
-				end
-				CRFire_Timer:SetAlpha(CRHelper.fireAlpha)
-			end
-		)
-	else
-		CRFire_Timer:SetText(zo_strformat(CRHelper.RoaringFlareMessage, CRHelper.fireTargetName, CRHelper.fireCount))
-		PlaySound(SOUNDS.DUEL_BOUNDARY_WARNING)
-	end
-end
-
 function CRHelper.VoltaicOverload(eventCode, changeType, effectSlot, effectName, unitTag, beginTime, endTime, stackCount, iconName,  buffType, effectType, abilityType, statusEffectType)
 	
 	-- If isn't on this player, then just ignore it
@@ -374,6 +398,22 @@ end
 
 ----- /SHADOW SPLASH INTERRUPT -----
 
+-- Fade out animation for any custom control
+-- Hides control when animation ends
+function CRHelper.FadeOutControl(control, duration)
+
+    local animation, timeline = CreateSimpleAnimation(ANIMATION_ALPHA, control)
+ 
+    animation:SetAlphaValues(control:GetAlpha(), 0)
+    animation:SetDuration(duration or 1000)
+ 
+    timeline:SetPlaybackType(ANIMATION_PLAYBACK_ONE_SHOT)
+	timeline:SetHandler('OnStop', function()
+        control:SetHidden(true)
+    end)
+    timeline:PlayFromStart()
+
+end
 
 -- Gets the current window position and saves it in savedVariables
 function CRHelper:OnShockControlMoveStop()
