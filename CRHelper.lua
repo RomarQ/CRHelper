@@ -64,7 +64,7 @@ CRHelper = {
 	----- /(Beam) -----
 
 
-	
+
 	----- Shadow Splash Cast (Interrupt) -----
 	shadowSplashCastId = 105123,
 	----- /Shadow Splash Cast (Interrupt) -----
@@ -648,6 +648,7 @@ SLASH_COMMANDS["/cr"] = function ( command )
 		CRShock_Timer:SetText("SHOCK INC")
 
 		CRFrost:SetHidden(false)
+		CRFrost_Timer:SetAlpha(1)
 		CRFrost_Timer:SetText("FROST INC")
 
 		CRInterrupt:SetHidden(false)
@@ -670,6 +671,7 @@ SLASH_COMMANDS["/cr"] = function ( command )
 		CRShock_Timer:SetText("")
 		
 		CRFrost:SetHidden(true)
+		CRFrost_Timer:SetAlpha(0)
 		CRFrost_Timer:SetText("")
 
 		CRInterrupt:SetHidden(true)
