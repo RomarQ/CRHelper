@@ -3,70 +3,70 @@ CRHelper = {
 
 	----- Portal Phase (Shadow Realm) -----
 
-	Start_SRealm_CD = 105890,
-	BossReset = 107478,
-	PortalSpawn = 103946,
-	PortalEnd = 105218,
-	--
-	portalTimer = 0,
-	stopPortalTimer = true,
+		Start_SRealm_CD = 105890,
+		BossReset = 107478,
+		PortalSpawn = 103946,
+		PortalEnd = 105218,
+		--
+		portalTimer = 0,
+		stopPortalTimer = true,
 
 	----- /Portal Phase (Shadow Realm) -----
 
 
 	----- ROARING FLARE (FIRE) -----
-	roaringFlareId = 103531, -- {103531, 103922, 103921}
-	roaringFlareDuration = 6, -- countdown for timer
-	roaringFlareMessage = "|cFFA500<<a:1>>|r: |cFF4500<<2>>|r", -- name: <<1>> countdown: <<2>>
+		roaringFlareId = 103531, -- {103531, 103922, 103921}
+		roaringFlareDuration = 6, -- countdown for timer
+		roaringFlareMessage = "|cFFA500<<a:1>>|r: |cFF4500<<2>>|r", -- name: <<1>> countdown: <<2>>
 
-	fireStarted = false,
-	fireTargetName = "", -- Roaring Flare target name
-	fireCount = 0,  -- Roaring Flare counter
+		fireStarted = false,
+		fireTargetName = "", -- Roaring Flare target name
+		fireCount = 0,  -- Roaring Flare counter
 	----- /ROARING FLARE (FIRE) -----
 	
 
 	----- Hoarfrost (FROST) -----
 
-	HoarfrostIds = {103760, 105151},
-	HoarfrostSynergyIds = {103697},
-	HoarfrostDuration = 10, -- how many seconds until synergy available
-	HoarfrostMessage = "|c00FFFF<<a:1>>|r: |c1E90FF<<2>>|r", -- name: <<1>> countdown: <<2>>
-	HoarfrostSynergyMessage = "|c1E90FF<<a:1>>|r DROPS FROST!", -- name: <<1>>
-	
-	frostStarted = false,
-	frostEffectGained = false,
-	frostTargetName = "", -- Hoarfrost target name
-	frostCount = 0,  -- Hoarfrost counter
-	frostAlpha = 1,  -- Hoarfrost counter opacity
-	frostSynergy = false, -- Hoarfrost synergy available
+		HoarfrostIds = {103760, 105151},
+		HoarfrostSynergyIds = {103697},
+		HoarfrostDuration = 10, -- how many seconds until synergy available
+		HoarfrostMessage = "|c00FFFF<<a:1>>|r: |c1E90FF<<2>>|r", -- name: <<1>> countdown: <<2>>
+		HoarfrostSynergyMessage = "|c1E90FF<<a:1>>|r DROPS FROST!", -- name: <<1>>
+		
+		frostStarted = false,
+		frostEffectGained = false,
+		frostTargetName = "", -- Hoarfrost target name
+		frostCount = 0,  -- Hoarfrost counter
+		frostAlpha = 1,  -- Hoarfrost counter opacity
+		frostSynergy = false, -- Hoarfrost synergy available
 
 	----- /Hoarfrost (FROST) -----
 
 
 	----- Weapon Swap mechanic ( Shock ) -----
 
-	-- Shock animation started on a player
-	VoltaicCurrentIds = {103895, 103896},
+		-- Shock animation started on a player
+		VoltaicCurrentIds = {103895, 103896},
 
-	-- Big shock aoe on a player (lasts 10 seconds)
-	VoltaicOverloadIds = {87346} ,
+		-- Big shock aoe on a player (lasts 10 seconds)
+		VoltaicOverloadIds = {87346} ,
 
-	shockCount = 0,  -- Voltaic Overload counter
-	shockAlpha = 1,  -- Voltaic Overload counter opacity
-	swapped = false, -- Whether a player swapped his weapons after getting Voltaic Overload debuff
+		shockCount = 0,  -- Voltaic Overload counter
+		shockAlpha = 1,  -- Voltaic Overload counter opacity
+		swapped = false, -- Whether a player swapped his weapons after getting Voltaic Overload debuff
 
 	----- /Weapon Swap mechanic ( Shock ) -----
 
 
 
 	----- (Beam) -----
-	beamId = 105161,
+		beamId = 105161,
 	----- /(Beam) -----
 
 
 
 	----- Shadow Splash Cast (Interrupt) -----
-	shadowSplashCastId = 105123,
+		shadowSplashCastId = 105123,
 	----- /Shadow Splash Cast (Interrupt) -----
 }
 
@@ -82,8 +82,8 @@ function CRHelper:Initialize()
 
 	CRHelper:registerHoarfrost()
 
-	EVENT_MANAGER:RegisterForEvent("CloudrestWeaponSwap", EVENT_ACTIVE_WEAPON_PAIR_CHANGED, CRHelper.WeaponSwap)
-	EVENT_MANAGER:AddFilterForEvent("CloudrestWeaponSwap", EVENT_ACTIVE_WEAPON_PAIR_CHANGED, REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER)
+	EVENT_MANAGER:RegisterForEvent("CloudrestWeaponSwap", EVENT_ACTIVE_WEAPON_PAIR_CHANGED, CRHelper.WeaponSwap )
+	EVENT_MANAGER:AddFilterForEvent("CloudrestWeaponSwap", EVENT_ACTIVE_WEAPON_PAIR_CHANGED, REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER )
 
 	-- Main Boss Interrupt Mechanic
 	EVENT_MANAGER:RegisterForEvent("ShadowSplashCast", EVENT_COMBAT_EVENT, self.ShadowSplashCast)
@@ -121,7 +121,7 @@ function CRHelper.startSRealmCoolDown(eventCode, result, isError, abilityName, a
 
 	if ( result == ACTION_RESULT_EFFECT_GAINED ) then
 		
-		CRHelper.portalTimer = 30
+		CRHelper.portalTimer = 28
 		CRHelper.stopPortalTimer = false
 		CRHelperFrame:SetHidden(false)
 		CRHelper.PortalTimerUpdate()
@@ -243,6 +243,7 @@ function CRHelper.VoltaicCurrent(eventCode, result, isError, abilityName, abilit
 	if ( 1 ~= targetType ) then return end
 	
 	CRShock:SetHidden(false)
+	CRShock_Timer:SetAlpha(1)
 	CRShock_Timer:SetText("SHOCK INC")
 	PlaySound(SOUNDS.DUEL_START)
 
@@ -329,6 +330,7 @@ function CRHelper.Hoarfrost(eventCode, result, isError, abilityName, abilityGrap
 	CRHelper.frostCount = CRHelper.HoarfrostDuration -- countdown
 
 	CRFrost:SetHidden(false)
+	CRFrost_Timer:SetAlpha(1)
 	CRFrost_Timer:SetText(zo_strformat(CRHelper.HoarfrostMessage, CRHelper.frostTargetName, CRHelper.frostCount))
 	PlaySound(SOUNDS.DUEL_START)
 
@@ -368,6 +370,7 @@ function CRHelper.HoarfrostSynergy(eventCode, result, isError, abilityName, abil
 	if (CRHelper.frostSynergy) then return end
 
 	CRFrost:SetHidden(false)
+	CRFrost:
 	PlaySound(SOUNDS.DUEL_START)
 
 	if (targetType == 1) then
