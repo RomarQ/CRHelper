@@ -1,6 +1,11 @@
-CRHelper = {}
+CRHelper = {
+	name = "CRHelper",
 
-CRHelper.name = "CRHelper"
+	Start_SRealm_CD = 105890,
+	BossReset = 107478,
+	portalTimer = 0,
+	stopPortalTimer = true
+}
 
 ----- ROARING FLARE (FIRE) -----
 
@@ -19,6 +24,8 @@ CRHelper.VoltaicCurrentIds = {103895, 103896}
 
 -- Big shock aoe on a player (lasts 10 seconds)
 CRHelper.VoltaicOverloadIds = {87346} 
+
+CRHelper.PortalPhaseId = 103946
 
 -- Frost animation started on a player
 CRHelper.HoarfrostIds = {103760, 105151}
@@ -47,14 +54,6 @@ LUNIT = LibStub:GetLibrary("LibUnits")
 
 function CRHelper:Initialize()
 
-	CRFire:SetHidden(true)
-
-	CRShock_Timer:SetText("")
-	CRShock_Timer:SetAlpha(0)
-
-	CRFrost_Timer:SetText("")
-	CRFrost_Timer:SetAlpha(0)
-
 	CRHelper:RegisterRoaringFlare()
 
 	CRHelper:registerVoltaicCurrent()
@@ -65,17 +64,112 @@ function CRHelper:Initialize()
 	EVENT_MANAGER:RegisterForEvent("CloudrestWeaponSwap", EVENT_ACTIVE_WEAPON_PAIR_CHANGED, CRHelper.WeaponSwap)
 	EVENT_MANAGER:AddFilterForEvent("CloudrestWeaponSwap", EVENT_ACTIVE_WEAPON_PAIR_CHANGED, REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER)
 
+	-- Main Boss Interrupt Mechanic
 	EVENT_MANAGER:RegisterForEvent("ShadowSplashCast", EVENT_COMBAT_EVENT, self.ShadowSplashCast)
 	EVENT_MANAGER:AddFilterForEvent("ShadowSplashCast", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, CRHelper.shadowSplashCastId)
 
-	EVENT_MANAGER:RegisterForEvent("beam", EVENT_COMBAT_EVENT, self.beam)
-	EVENT_MANAGER:AddFilterForEvent("beam", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, CRHelper.beamId )
+	-- Beam mechanic that comes from main boss head
+	EVENT_MANAGER:RegisterForEvent("Beam", EVENT_COMBAT_EVENT, self.Beam)
+	EVENT_MANAGER:AddFilterForEvent("Beam", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, CRHelper.beamId )
+
+	-- Register for when portal cooldown starts
+	EVENT_MANAGER:RegisterForEvent("StartSRealmCD", EVENT_COMBAT_EVENT, self.startSRealmCoolDown )
+	EVENT_MANAGER:AddFilterForEvent("StartSRealmCD", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID , CRHelper.Start_SRealm_CD )
+
+	-- Register for BossReset
+	EVENT_MANAGER:RegisterForEvent("BossReset", EVENT_COMBAT_EVENT, self.ResetPortalTimer )
+	EVENT_MANAGER:AddFilterForEvent("BossReset", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, CRHelper.BossReset )
+
+	-- Resgister for Portal Spawn
+	EVENT_MANAGER:RegisterForEvent("portalSpawn", EVENT_COMBAT_EVENT, self.PortalPhase )
+	EVENT_MANAGER:AddFilterForEvent("portalSpawn", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, CRHelper.PortalPhaseId )
+
+	-- Not tested
+	-- EVENT_MANAGER:RegisterForEvent("portal2", EVENT_COMBAT_EVENT, self.PortalPhaseEnd )
+	-- EVENT_MANAGER:AddFilterForEvent("portal2", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, 105218 )--105218
 
 	-- Gets configs from savedVariables, if file doesn't exist then also creates it
 	self.savedVariables = ZO_SavedVars:New("CRHelperSavedVariables", 1, nil, {})
 
 	-- Sets window position
 	self:RestorePosition()
+end
+
+-- This fucntion will be called when engaging Main Boss
+function CRHelper.startSRealmCoolDown(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
+
+	if ( result == ACTION_RESULT_EFFECT_GAINED ) then
+		
+		CRHelper.portalTimer = 28
+		CRHelper.stopPortalTimer = false
+		CRHelperFrame:SetHidden(false)
+		CRHelper.PortalTimerUpdate()
+
+	end
+
+end
+
+-- This function is called on every wipe when fighting main boss in Cloudrest
+function CRHelper.ResetPortalTimer(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
+
+	if ( result == ACTION_RESULT_EFFECT_GAINED ) then
+		CRHelper.portalTimer = 0
+		CRHelperFrame:SetHidden(true)
+		CRHelper.stopPortalTimer = true
+	end
+
+end
+
+-- This function is called on every portal spawn
+function CRHelper.PortalPhase(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
+
+	if ( result == ACTION_RESULT_EFFECT_GAINED ) then
+		
+		CRHelper.portalTimer = 138
+		CRHelper.stopPortalTimer = false
+		CRHelperFrame:SetHidden(false)
+		CRHelper.PortalTimerUpdate()
+
+	end
+
+end
+
+-- Not tested yet
+-- function CRHelper.PortalPhaseEnd(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
+--	
+--	d('----------------')
+--	d('portal phase over')
+--	d('event: ' .. eventCode)
+--	d('result: ' .. result )
+--	d('-------------')
+--
+--end
+
+-- Timer for portal spawn
+function CRHelper.PortalTimerUpdate()
+
+	if ( CRHelper.stopPortalTimer ) then
+		EVENT_MANAGER:UnregisterForUpdate("PortalTimer")
+		return
+	end
+
+	CRHelper.portalTimer = CRHelper.portalTimer - 1
+	if ( CRHelper.portalTimer > 20 ) then
+		CRHelperFrame_Timer:SetText(string.format(" Portal in : |c19db1c %d |r", CRHelper.portalTimer ))
+	else
+		CRHelperFrame_Timer:SetText(string.format(" Portal in : |cf20018 %d |r", CRHelper.portalTimer ))
+	end
+
+	if ( CRHelper.portalTimer == 0 ) then
+		CRHelper.stopPortalTimer = true
+		CRHelperFrame:SetHidden(true)
+		EVENT_MANAGER:UnregisterForUpdate("PortalTimer")
+		return
+	end
+	
+	EVENT_MANAGER:UnregisterForUpdate("PortalTimer")
+	EVENT_MANAGER:RegisterForUpdate("PortalTimer", 1000, CRHelper.PortalTimerUpdate)
+
 end
 
 function CRHelper:registerVoltaicCurrent()
@@ -130,7 +224,7 @@ function CRHelper.VoltaicCurrent(eventCode, result, isError, abilityName, abilit
 	-- If isn't on this player, then just ignore it
 	if ( 1 ~= targetType ) then return end
 	
-	CRShock_Timer:SetAlpha(1)
+	CRShock:SetHidden(false)
 	CRShock_Timer:SetText("SHOCK INC")
 	PlaySound(SOUNDS.DUEL_START)
 
@@ -216,7 +310,7 @@ function CRHelper.Hoarfrost(eventCode, result, isError, abilityName, abilityGrap
 	CRHelper.frostTargetName = LUNIT:GetNameForUnitId(targetUnitId) -- get name of target
 	CRHelper.frostCount = CRHelper.HoarfrostDuration -- countdown
 
-	CRFrost_Timer:SetAlpha(1)
+	CRFrost:SetHidden(false)
 	CRFrost_Timer:SetText(zo_strformat(CRHelper.HoarfrostMessage, CRHelper.frostTargetName, CRHelper.frostCount))
 	PlaySound(SOUNDS.DUEL_START)
 
@@ -255,7 +349,7 @@ function CRHelper.HoarfrostSynergy(eventCode, result, isError, abilityName, abil
 
 	if (CRHelper.frostSynergy) then return end
 
-	CRFrost_Timer:SetAlpha(1)
+	CRFrost:SetHidden(false)
 	PlaySound(SOUNDS.DUEL_START)
 
 	if (targetType == 1) then
@@ -340,7 +434,7 @@ function CRHelper:EnableShockTimer(beginTime, endTime)
 	EVENT_MANAGER:UnregisterForUpdate("ShockTimer")
 	EVENT_MANAGER:UnregisterForUpdate("ShockTimerFadeOut")
 	CRShock_Timer:SetText("")
-	CRShock_Timer:SetAlpha(1)
+	CRShock:SetHidden(false)
 	CRHelper.shockAlpha = 1
 	self.shockCount = math.ceil(endTime - beginTime)
 	PlaySound(SOUNDS.DUEL_START)
@@ -370,27 +464,27 @@ end
 -- Shows a notification when boss is casting Shadow Splash and needs to be interrupted
 function CRHelper.ShadowSplashCast(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
 
-	if ( result == 2250 ) then
-		CRInterrupt_Warning:SetAlpha(0)
+	if ( result == ACTION_RESULT_EFFECT_FADED ) then
+		CRInterrupt:SetHidden(true)
 		return
 	end
 
 	CRInterrupt_Warning:SetText("Interrupt the Hypnotard!")
-	CRInterrupt_Warning:SetAlpha(1)
+	CRInterrupt:SetHidden(false)
 	PlaySound(SOUNDS.SKILL_LINE_ADDED)
 
 end
 
-function CRHelper.beam(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
+function CRHelper.Beam(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
 
-	if ( result == 2250 ) then
-		CRBeam_Warning:SetAlpha(0)
+	if ( result == ACTION_RESULT_EFFECT_FADED ) then
+		CRBeam:SetHidden(true)
 		return
 	end
 
 	if ( targetType == 1 ) then
-        CRBeam_Warning:SetText( ' Beam is on you, move out of the group! ')
-        CRBeam_Warning:SetAlpha(1)
+        CRBeam_Warning:SetText( 'Beam is on you, move out of the group!' )
+        CRBeam:SetHidden(false)
         PlaySound(SOUNDS.SKILL_LINE_ADDED)
     end
 
@@ -441,6 +535,11 @@ function CRHelper:OnBeamMoveStop()
 	CRHelper.savedVariables.beamTop = CRBeam:GetTop()
 end
 
+function CRHelper:OnFrameMoveStop()
+	CRHelper.savedVariables.frameLeft = CRHelperFrame:GetLeft()
+	CRHelper.savedVariables.frameTop = CRHelperFrame:GetTop()
+end
+
 -- Gets the saved window position and updates it
 function CRHelper:RestorePosition()
 	local shockLeft = self.savedVariables.shockLeft
@@ -458,6 +557,9 @@ function CRHelper:RestorePosition()
 	local beamLeft = self.savedVariables.beamLeft
 	local beamTop = self.savedVariables.beamTop
 	
+	local frameLeft = self.savedVariables.frameLeft
+	local frameTop = self.savedVariables.frameTop
+
 	local fontSize = self.savedVariables.fontSize
 
 	if (shockLeft or shockTop) then
@@ -482,9 +584,14 @@ function CRHelper:RestorePosition()
 
 	if (beamLeft and beamTop) then
 		CRBeam:ClearAnchors()
-		CRBeam:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, beamLeft, BeamTop)
+		CRBeam:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, beamLeft, beamTop)
 	end
 	
+	if ( frameLeft and frameTop ) then
+		CRHelperFrame:ClearAnchors();
+		CRHelperFrame:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, frameLeft, frameTop);
+	end
+
 	-- Restore font
 	if (fontSize == 'small' or fontSize == 'medium' or fontSize == 'large') then
 		CRHelper:setFontSize(fontSize)
@@ -514,21 +621,24 @@ end
 SLASH_COMMANDS["/cr"] = function ( command )
 
 	if ( command == 'unlock' ) then
+		-- Show dummy text so user can move the window
 
 		CRHelper.FireTimerShow("FIRE INC")
-	
-		-- Show dummy text so user can move the window
+
+		CRShock:SetHidden(false)
 		CRShock_Timer:SetAlpha(1)
 		CRShock_Timer:SetText("SHOCK INC")
-		
-		CRFrost_Timer:SetAlpha(1)
+
+		CRFrost:SetHidden(false)
 		CRFrost_Timer:SetText("FROST INC")
 
-		CRInterrupt_Warning:SetAlpha(1)
+		CRInterrupt:SetHidden(false)
 		CRInterrupt_Warning:SetText("Interrupt the Hypnotard!")
 
-		CRBeam_Warning:SetAlpha(1)
+		CRBeam:SetHidden(false)
 		CRBeam_Warning:SetText( 'Beam is on you, move out of the group!' )
+
+		CRHelperFrame:SetHidden(false)
 
 		return
 	end
@@ -537,17 +647,21 @@ SLASH_COMMANDS["/cr"] = function ( command )
 
 		CRHelper.FireTimerHide()
 
+		CRShock:SetHidden(true)
 		CRShock_Timer:SetAlpha(0)
 		CRShock_Timer:SetText("")
 		
-		CRFrost_Timer:SetAlpha(0)
+		CRFrost:SetHidden(true)
 		CRFrost_Timer:SetText("")
 
-		CRInterrupt_Warning:SetAlpha(0)
+		CRInterrupt:SetHidden(true)
 		CRInterrupt_Warning:SetText("")
 
-		CRBeam_Warning:SetAlpha(0)
+		CRBeam:SetHidden(true)
 		CRBeam_Warning:SetText( '' )
+
+		CRHelperFrame:SetHidden(true)
+
 		return
 	end
 
@@ -581,6 +695,8 @@ SLASH_COMMANDS["/cr"] = function ( command )
 		CRHelper.savedVariables.interruptTop = nil
 		CRHelper.savedVariables.beamLeft = nil
 		CRHelper.savedVariables.beamTop = nil
+		CRHelper.savedVariables.frameLeft = nil
+		CRHelper.savedVariables.frameTop = nil
 		return
 	end
 
