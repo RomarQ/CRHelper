@@ -370,7 +370,7 @@ function CRHelper.HoarfrostSynergy(eventCode, result, isError, abilityName, abil
 	if (CRHelper.frostSynergy) then return end
 
 	CRFrost:SetHidden(false)
-	CRFrost:
+	CRFrost:SetAlpha(1)
 	PlaySound(SOUNDS.DUEL_START)
 
 	if (targetType == 1) then
