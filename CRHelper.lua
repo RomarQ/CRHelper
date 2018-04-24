@@ -1,54 +1,75 @@
 CRHelper = {
 	name = "CRHelper",
 
+	----- Portal Phase (Shadow Realm) -----
+
 	Start_SRealm_CD = 105890,
 	BossReset = 107478,
+	PortalSpawn = 103946,
+	PortalEnd = 105218,
+	--
 	portalTimer = 0,
-	stopPortalTimer = true
+	stopPortalTimer = true,
+
+	----- /Portal Phase (Shadow Realm) -----
+
+
+	----- ROARING FLARE (FIRE) -----
+	roaringFlareId = 103531, -- {103531, 103922, 103921}
+	roaringFlareDuration = 6, -- countdown for timer
+	roaringFlareMessage = "|cFFA500<<a:1>>|r: |cFF4500<<2>>|r", -- name: <<1>> countdown: <<2>>
+
+	fireStarted = false,
+	fireTargetName = "", -- Roaring Flare target name
+	fireCount = 0,  -- Roaring Flare counter
+	----- /ROARING FLARE (FIRE) -----
+	
+
+	----- Hoarfrost (FROST) -----
+
+	HoarfrostIds = {103760, 105151},
+	HoarfrostSynergyIds = {103697},
+	HoarfrostDuration = 10, -- how many seconds until synergy available
+	HoarfrostMessage = "|c00FFFF<<a:1>>|r: |c1E90FF<<2>>|r", -- name: <<1>> countdown: <<2>>
+	HoarfrostSynergyMessage = "|c1E90FF<<a:1>>|r DROPS FROST!", -- name: <<1>>
+	
+	frostStarted = false,
+	frostEffectGained = false,
+	frostTargetName = "", -- Hoarfrost target name
+	frostCount = 0,  -- Hoarfrost counter
+	frostAlpha = 1,  -- Hoarfrost counter opacity
+	frostSynergy = false, -- Hoarfrost synergy available
+
+	----- /Hoarfrost (FROST) -----
+
+
+	----- Weapon Swap mechanic ( Shock ) -----
+
+	-- Shock animation started on a player
+	VoltaicCurrentIds = {103895, 103896},
+
+	-- Big shock aoe on a player (lasts 10 seconds)
+	VoltaicOverloadIds = {87346} ,
+
+	shockCount = 0,  -- Voltaic Overload counter
+	shockAlpha = 1,  -- Voltaic Overload counter opacity
+	swapped = false, -- Whether a player swapped his weapons after getting Voltaic Overload debuff
+
+	----- /Weapon Swap mechanic ( Shock ) -----
+
+
+
+	----- (Beam) -----
+	beamId = 105161,
+	----- /(Beam) -----
+
+
+	
+	----- Shadow Splash Cast (Interrupt) -----
+	shadowSplashCastId = 105123,
+	----- /Shadow Splash Cast (Interrupt) -----
 }
 
------ ROARING FLARE (FIRE) -----
-
-CRHelper.roaringFlareId = 103531 -- {103531, 103922, 103921}
-CRHelper.roaringFlareDuration = 6 -- countdown for timer
-CRHelper.roaringFlareMessage = "|cFFA500<<a:1>>|r: |cFF4500<<2>>|r" -- name: <<1>> countdown: <<2>>
-
-CRHelper.fireStarted = false
-CRHelper.fireTargetName = "" -- Roaring Flare target name
-CRHelper.fireCount = 0  -- Roaring Flare counter
-
------ /ROARING FLARE (FIRE) -----
-
--- Shock animation started on a player
-CRHelper.VoltaicCurrentIds = {103895, 103896} 
-
--- Big shock aoe on a player (lasts 10 seconds)
-CRHelper.VoltaicOverloadIds = {87346} 
-
-CRHelper.PortalPhaseId = 103946
-
--- Frost animation started on a player
-CRHelper.HoarfrostIds = {103760, 105151}
-CRHelper.HoarfrostSynergyIds = {103697}
-CRHelper.HoarfrostDuration = 10 -- how many seconds until synergy available
-CRHelper.HoarfrostMessage = "|c00FFFF<<a:1>>|r: |c1E90FF<<2>>|r" -- name: <<1>> countdown: <<2>>
-CRHelper.HoarfrostSynergyMessage = "|c1E90FF<<a:1>>|r DROPS FROST!" -- name: <<1>>
-
-CRHelper.shockCount = 0  -- Voltaic Overload counter
-CRHelper.shockAlpha = 1  -- Voltaic Overload counter opacity
-CRHelper.swapped = false -- Whether a player swapped his weapons after getting Voltaic Overload debuff
-
-CRHelper.frostStarted = false
-CRHelper.frostEffectGained = false
-CRHelper.frostTargetName = "" -- Hoarfrost target name
-CRHelper.frostCount = 0  -- Hoarfrost counter
-CRHelper.frostAlpha = 1  -- Hoarfrost counter opacity
-CRHelper.frostSynergy = false -- Hoarfrost synergy available
-
-CRHelper.beamId = 105161
-
-CRHelper.shadowSplashCastId = 105123
-CRHelper.shadowSplashCastAlpha = 1
 
 LUNIT = LibStub:GetLibrary("LibUnits")
 
@@ -82,11 +103,11 @@ function CRHelper:Initialize()
 
 	-- Resgister for Portal Spawn
 	EVENT_MANAGER:RegisterForEvent("portalSpawn", EVENT_COMBAT_EVENT, self.PortalPhase )
-	EVENT_MANAGER:AddFilterForEvent("portalSpawn", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, CRHelper.PortalPhaseId )
+	EVENT_MANAGER:AddFilterForEvent("portalSpawn", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, CRHelper.PortalSpawn )
 
-	-- Not tested
-	-- EVENT_MANAGER:RegisterForEvent("portal2", EVENT_COMBAT_EVENT, self.PortalPhaseEnd )
-	-- EVENT_MANAGER:AddFilterForEvent("portal2", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, 105218 )--105218
+	-- Resgister for when portal closes
+	EVENT_MANAGER:RegisterForEvent("portalEnd", EVENT_COMBAT_EVENT, self.PortalPhaseEnd )
+	EVENT_MANAGER:AddFilterForEvent("portalEnd", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, CRHelper.PortalEnd )
 
 	-- Gets configs from savedVariables, if file doesn't exist then also creates it
 	self.savedVariables = ZO_SavedVars:New("CRHelperSavedVariables", 1, nil, {})
@@ -95,12 +116,12 @@ function CRHelper:Initialize()
 	self:RestorePosition()
 end
 
--- This fucntion will be called when engaging Main Boss
+-- This function will be called when engaging Main Boss
 function CRHelper.startSRealmCoolDown(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
 
 	if ( result == ACTION_RESULT_EFFECT_GAINED ) then
 		
-		CRHelper.portalTimer = 28
+		CRHelper.portalTimer = 30
 		CRHelper.stopPortalTimer = false
 		CRHelperFrame:SetHidden(false)
 		CRHelper.PortalTimerUpdate()
@@ -125,7 +146,7 @@ function CRHelper.PortalPhase(eventCode, result, isError, abilityName, abilityGr
 
 	if ( result == ACTION_RESULT_EFFECT_GAINED ) then
 		
-		CRHelper.portalTimer = 136
+		CRHelper.portalTimer = 100
 		CRHelper.stopPortalTimer = false
 		CRHelperFrame:SetHidden(false)
 		CRHelper.PortalTimerUpdate()
@@ -134,16 +155,13 @@ function CRHelper.PortalPhase(eventCode, result, isError, abilityName, abilityGr
 
 end
 
--- Not tested yet
--- function CRHelper.PortalPhaseEnd(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
---	
---	d('----------------')
---	d('portal phase over')
---	d('event: ' .. eventCode)
---	d('result: ' .. result )
---	d('-------------')
---
---end
+-- Will fix the 
+function CRHelper.PortalPhaseEnd(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
+
+	-- Will fix interrupt message of shadow realm boss from displaying after portal closes 
+	CRInterrupt:SetHidden(true)
+
+end
 
 -- Timer for portal spawn
 function CRHelper.PortalTimerUpdate()
