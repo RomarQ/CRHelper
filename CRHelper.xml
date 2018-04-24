@@ -3,7 +3,7 @@
 
     <TopLevelControl name="CRHelperFrame" resizeToFitDescendents="true" mouseEnabled="true" movable="true" clampedToScreen="true" hidden="true">
       <Dimensions x="200" y="42" />
-      <Anchor point="BOTTOM" relativeTo="GuiRoot" relativePoint="CENTER" offsetX="0" offsetY="-270" />
+      <Anchor point="BOTTOM" relativeTo="GuiRoot" relativePoint="CENTER" offsetX="0" offsetY="-300" />
 
       <OnMoveStop>
         CRHelper.OnFrameMoveStop()
@@ -74,7 +74,7 @@
 
     <TopLevelControl name="CRBeam" mouseEnabled="true" movable="true" clampedToScreen="true" hidden="true">
       <Dimensions x="200" y="50" />
-      <Anchor  point="BOTTOM" relativeTo="GuiRoot" relativePoint="CENTER" offsetX="50" offsetY="-30" />
+      <Anchor  point="BOTTOM" relativeTo="GuiRoot" relativePoint="CENTER" offsetX="50" offsetY="70" />
 
       <OnMoveStop>
         CRHelper.OnBeamMoveStop()
