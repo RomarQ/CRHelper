@@ -125,7 +125,7 @@ function CRHelper.PortalPhase(eventCode, result, isError, abilityName, abilityGr
 
 	if ( result == ACTION_RESULT_EFFECT_GAINED ) then
 		
-		CRHelper.portalTimer = 138
+		CRHelper.portalTimer = 136
 		CRHelper.stopPortalTimer = false
 		CRHelperFrame:SetHidden(false)
 		CRHelper.PortalTimerUpdate()
