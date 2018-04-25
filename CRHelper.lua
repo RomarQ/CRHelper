@@ -1,5 +1,7 @@
 CRHelper = {
 	name = "CRHelper",
+	version	= "1",
+	varVersion = 1,
 	trialZoneId = 1051,
 
 	-- core flags
@@ -20,7 +22,6 @@ CRHelper = {
 
 
 	----- ROARING FLARE (FIRE) -----
-
 		roaringFlareId = 103531, -- {103531, 103922, 103921}
 		roaringFlareDuration = 6, -- countdown for timer
 		roaringFlareMessage = "|cFFA500<<a:1>>|r: |cFF4500<<2>>|r", -- name: <<1>> countdown: <<2>>
@@ -28,24 +29,23 @@ CRHelper = {
 		fireStarted = false,
 		fireTargetName = "", -- Roaring Flare target name
 		fireCount = 0,  -- Roaring Flare counter
-
 	----- /ROARING FLARE (FIRE) -----
 	
 
 	----- Hoarfrost (FROST) -----
 
-		hoarfrostIds = {103760, 105151},
-		hoarfrostSynergyId = 103697,
-		hoarfrostDuration = 10, -- how many seconds until synergy available
-		hoarfrostMessage = "|c00FFFF<<a:1>>|r: |c1E90FF<<2>>|r", -- name: <<1>> countdown: <<2>>
-		hoarfrostSynergyMessage = "|c1E90FF<<a:1>>|r DROPS FROST!", -- name: <<1>>
-		
-		frostStarted = false,
-		frostEffectGained = false,
-		frostTargetName = "", -- Hoarfrost target name
-		frostCount = 0,  -- Hoarfrost counter
-		frostAlpha = 1,  -- Hoarfrost counter opacity
-		frostSynergy = false, -- Hoarfrost synergy available
+	hoarfrostIds = {103760, 105151},
+	hoarfrostSynergyId = 103697,
+	hoarfrostDuration = 10, -- how many seconds until synergy available
+	hoarfrostMessage = "|c00FFFF<<a:1>>|r: |c1E90FF<<2>>|r", -- name: <<1>> countdown: <<2>>
+	hoarfrostSynergyMessage = "|c1E90FF<<a:1>>|r DROPS FROST!", -- name: <<1>>
+	
+	frostStarted = false,
+	frostEffectGained = false,
+	frostTargetName = "", -- Hoarfrost target name
+	frostCount = 0,  -- Hoarfrost counter
+	frostAlpha = 1,  -- Hoarfrost counter opacity
+	frostSynergy = false, -- Hoarfrost synergy available
 
 	----- /Hoarfrost (FROST) -----
 
@@ -80,15 +80,22 @@ CRHelper = {
 
 LUNIT = LibStub:GetLibrary("LibUnits")
 
-
 function CRHelper.OnAddOnLoaded(event, addonName)
 	-- The event fires each time *any* addon loads - but we only care about when our own addon loads.
 	if addonName ~= CRHelper.name then return end
 
 	EVENT_MANAGER:UnregisterForEvent(CRHelper.name, EVENT_ADD_ON_LOADED);
+	CRHelper.Init()
+
+end
+
+function CRHelper.Init()
 
 	-- Gets configs from savedVariables, if file doesn't exist then also creates it
-	CRHelper.savedVariables = ZO_SavedVars:New("CRHelperSavedVariables", 1, nil, {})
+	CRHelper.savedVariables = ZO_SavedVars:New("CRHelperSavedVariables", CRHelper.varVersion , nil, {})
+	d('ola')
+	-- Builds a Settings menu on addon settings tab
+	CRHelper:buildMenu(CRHelper.savedVariables)
 
 	-- Sets window position
 	CRHelper:RestorePosition()
@@ -162,7 +169,6 @@ function CRHelper.PlayerActivated( eventCode, initial )
 			EVENT_MANAGER:UnregisterForEvent("BossReset", EVENT_COMBAT_EVENT)
 			EVENT_MANAGER:UnregisterForEvent("portalSpawn", EVENT_COMBAT_EVENT)
 			EVENT_MANAGER:UnregisterForEvent("RoaringFlare", EVENT_COMBAT_EVENT)
-			EVENT_MANAGER:UnregisterForEvent("HoarfrostSynergy", EVENT_COMBAT_EVENT)
 
 			-- UnRegister all subscribed VoltaicCurrent events
 			for i, id in ipairs(CRHelper.voltaicCurrentIds) do
@@ -174,7 +180,7 @@ function CRHelper.PlayerActivated( eventCode, initial )
 				EVENT_MANAGER:UnregisterForEvent("VoltaicOverload" .. i, EVENT_EFFECT_CHANGED)
 			end
 
-			EVENT_MANAGER:UnregisterForUpdate(CRHelper.name)
+			EVENT_MANAGER:UnregisterForUpdate(CRHelper.name);
 
 		end
 	end
@@ -200,6 +206,8 @@ end
 -- This function will be called when engaging Main Boss
 function CRHelper.startSRealmCoolDown(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
 
+	if ( not CRHelper.savedVariables.trackPortalTimer ) then return end
+
 	if ( result == ACTION_RESULT_EFFECT_GAINED ) then
 		
 		CRHelper.portalTimer = 28
@@ -224,6 +232,8 @@ end
 
 -- This function is called on every portal spawn
 function CRHelper.PortalPhase(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
+
+	if ( not CRHelper.savedVariables.trackPortalTimer ) then return end
 
 	if ( result == ACTION_RESULT_EFFECT_GAINED ) then
 		
@@ -268,6 +278,7 @@ function CRHelper.PortalTimerUpdate()
 
 end
 
+
 ----- ROARING FLARE (FIRE) ------
 
 function CRHelper:RegisterRoaringFlare()
@@ -278,6 +289,8 @@ function CRHelper:RegisterRoaringFlare()
 end
 
 function CRHelper.RoaringFlare(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
+
+	if ( not CRHelper.savedVariables.trackRoaringFlare ) then return end
 
 	if (result == ACTION_RESULT_BEGIN) then
 
@@ -342,7 +355,6 @@ end
 ----- /ROARING FLARE (FIRE) ------
 
 
-
 ----- HOARFROST (ICE) -----
 
 function CRHelper:RegisterHoarfrost()
@@ -353,6 +365,8 @@ function CRHelper:RegisterHoarfrost()
 end
 
 function CRHelper.HoarfrostSynergy(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
+
+	if ( not CRHelper.savedVariables.trackHoarfrost ) then return end
 
 	if (result == ACTION_RESULT_EFFECT_GAINED_DURATION) then
 
@@ -390,7 +404,6 @@ end
 
 
 
-
 ----- VOLTAIC OVERLOAD (SHOCK) -----
 
 function CRHelper:RegisterVoltaicCurrent()
@@ -415,6 +428,8 @@ end
 
 function CRHelper.VoltaicCurrent(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
 	
+	if ( not CRHelper.savedVariables.trackVoltaicOverload) then return end
+
 	-- If it's not on yourself, then just ignore it
 	if (targetType ~= COMBAT_UNIT_TYPE_PLAYER) then return end
 	
@@ -428,6 +443,8 @@ function CRHelper.VoltaicCurrent(eventCode, result, isError, abilityName, abilit
 end
 
 function CRHelper.VoltaicOverload(eventCode, changeType, effectSlot, effectName, unitTag, beginTime, endTime, stackCount, iconName,  buffType, effectType, abilityType, statusEffectType)
+
+	if ( not CRHelper.savedVariables.trackVoltaicOverload) then return end
 
 	-- If it's not on yourself, then just ignore it
 	if (unitTag ~= "player") then return end
@@ -506,11 +523,12 @@ end
 
 
 
-
 ----- SHADOW SPLASH INTERRUPT ------
 
 -- Shows a notification when boss is casting Shadow Splash and needs to be interrupted
 function CRHelper.ShadowSplashCast(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
+
+	if ( not CRHelper.savedVariables.trackShadowSplashCast ) then return end
 
 	if ( result == ACTION_RESULT_EFFECT_FADED ) then
 		CRInterrupt:SetHidden(true)
@@ -524,6 +542,8 @@ function CRHelper.ShadowSplashCast(eventCode, result, isError, abilityName, abil
 end
 
 function CRHelper.Beam(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
+
+	if ( not CRHelper.savedVariables.trackLaserBeam) then return end
 
 	if ( result == ACTION_RESULT_EFFECT_FADED ) then
 		CRBeam:SetHidden(true)
@@ -665,15 +685,54 @@ function CRHelper:setFontSize(fontSize)
 	end
 end
 
+function CRHelper:unlockUI()
+
+	-- Show dummy text so user can move the window
+
+	CRHelper.FireControlShow("FIRE INC")
+	CRHelper.FrostControlShow("FROST INC")
+	CRHelper.ShockControlShow("SHOCK INC")
+
+	CRInterrupt:SetHidden(false)
+	CRInterrupt_Warning:SetText("Interrupt the Hypnotard!")
+
+	CRBeam:SetHidden(false)
+	CRBeam_Warning:SetText( 'Beam is on you, move out of the group!' )
+
+	CRHelperFrame:SetHidden(false)
+
+end
+
+function CRHelper:lockUI()
+
+	CRHelper.FireControlHide()
+	CRHelper.FrostControlHide()
+	CRHelper.ShockControlHide()
+
+	CRInterrupt:SetHidden(true)
+	CRInterrupt_Warning:SetText("")
+
+	CRBeam:SetHidden(true)
+	CRBeam_Warning:SetText( '' )
+
+	CRHelperFrame:SetHidden(true)
+end
+
 -- SLASH CUSTOM COMMANDS
 SLASH_COMMANDS["/cr"] = function ( command )
 
 	if ( command == 'unlock' ) then
 		-- Show dummy text so user can move the window
 
-		CRHelper.FireControlShow("FIRE INC")
-		CRHelper.FrostControlShow("FROST INC")
-		CRHelper.ShockControlShow("SHOCK INC")
+		CRHelper.FireTimerShow("FIRE INC")
+
+		CRShock:SetHidden(false)
+		CRShock_Timer:SetAlpha(1)
+		CRShock_Timer:SetText("SHOCK INC")
+
+		CRFrost:SetHidden(false)
+		CRFrost_Timer:SetAlpha(1)
+		CRFrost_Timer:SetText("FROST INC")
 
 		CRInterrupt:SetHidden(false)
 		CRInterrupt_Warning:SetText("Interrupt the Hypnotard!")
@@ -688,9 +747,15 @@ SLASH_COMMANDS["/cr"] = function ( command )
 
 	if ( command == 'lock' ) then
 
-		CRHelper.FireControlHide()
-		CRHelper.FrostControlHide()
-		CRHelper.ShockControlHide()
+		CRHelper.FireTimerHide()
+
+		CRShock:SetHidden(true)
+		CRShock_Timer:SetAlpha(0)
+		CRShock_Timer:SetText("")
+		
+		CRFrost:SetHidden(true)
+		CRFrost_Timer:SetAlpha(0)
+		CRFrost_Timer:SetText("")
 
 		CRInterrupt:SetHidden(true)
 		CRInterrupt_Warning:SetText("")
