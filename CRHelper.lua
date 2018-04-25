@@ -746,6 +746,9 @@ SLASH_COMMANDS["/cr"] = function ( command )
 		CRHelper.FrostControlHide()
 		CRHelper.ShockControlHide()
 
+		CRInterrupt:SetHidden(true)
+ 		CRInterrupt_Warning:SetText("")
+
 		CRBeam:SetHidden(true)
 		CRBeam_Warning:SetText( '' )
 
