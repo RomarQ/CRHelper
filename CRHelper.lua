@@ -1,5 +1,10 @@
 CRHelper = {
 	name = "CRHelper",
+	trialZoneId = 1051,
+
+	-- core flags
+	active = false,	-- true when inside Cloudrest
+	monitoringFight = false, -- true when inCombat agains Z'Maja
 
 	----- Portal Phase (Shadow Realm) -----
 
@@ -73,47 +78,126 @@ CRHelper = {
 
 LUNIT = LibStub:GetLibrary("LibUnits")
 
-function CRHelper:Initialize()
 
-	CRHelper:RegisterRoaringFlare()
+function CRHelper.OnAddOnLoaded(event, addonName)
+	-- The event fires each time *any* addon loads - but we only care about when our own addon loads.
+	if addonName ~= CRHelper.name then return end
 
-	CRHelper:registerVoltaicCurrent()
-	CRHelper:registerVoltaicOverload()
-
-	CRHelper:registerHoarfrost()
-
-	EVENT_MANAGER:RegisterForEvent("CloudrestWeaponSwap", EVENT_ACTIVE_WEAPON_PAIR_CHANGED, CRHelper.WeaponSwap )
-	EVENT_MANAGER:AddFilterForEvent("CloudrestWeaponSwap", EVENT_ACTIVE_WEAPON_PAIR_CHANGED, REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER )
-
-	-- Main Boss Interrupt Mechanic
-	EVENT_MANAGER:RegisterForEvent("ShadowSplashCast", EVENT_COMBAT_EVENT, self.ShadowSplashCast)
-	EVENT_MANAGER:AddFilterForEvent("ShadowSplashCast", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, CRHelper.shadowSplashCastId)
-
-	-- Beam mechanic that comes from main boss head
-	EVENT_MANAGER:RegisterForEvent("Beam", EVENT_COMBAT_EVENT, self.Beam)
-	EVENT_MANAGER:AddFilterForEvent("Beam", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, CRHelper.beamId )
-
-	-- Register for when portal cooldown starts
-	EVENT_MANAGER:RegisterForEvent("StartSRealmCD", EVENT_COMBAT_EVENT, self.startSRealmCoolDown )
-	EVENT_MANAGER:AddFilterForEvent("StartSRealmCD", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID , CRHelper.Start_SRealm_CD )
-
-	-- Register for BossReset
-	EVENT_MANAGER:RegisterForEvent("BossReset", EVENT_COMBAT_EVENT, self.ResetPortalTimer )
-	EVENT_MANAGER:AddFilterForEvent("BossReset", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, CRHelper.BossReset )
-
-	-- Resgister for Portal Spawn
-	EVENT_MANAGER:RegisterForEvent("portalSpawn", EVENT_COMBAT_EVENT, self.PortalPhase )
-	EVENT_MANAGER:AddFilterForEvent("portalSpawn", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, CRHelper.PortalSpawn )
-
-	-- Resgister for when portal closes
-	EVENT_MANAGER:RegisterForEvent("portalEnd", EVENT_COMBAT_EVENT, self.PortalPhaseEnd )
-	EVENT_MANAGER:AddFilterForEvent("portalEnd", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, CRHelper.PortalEnd )
+	EVENT_MANAGER:UnregisterForEvent(CRHelper.name, EVENT_ADD_ON_LOADED);
 
 	-- Gets configs from savedVariables, if file doesn't exist then also creates it
-	self.savedVariables = ZO_SavedVars:New("CRHelperSavedVariables", 1, nil, {})
+	CRHelper.savedVariables = ZO_SavedVars:New("CRHelperSavedVariables", 1, nil, {})
 
 	-- Sets window position
-	self:RestorePosition()
+	CRHelper:RestorePosition()
+
+	EVENT_MANAGER:RegisterForEvent( CRHelper.name, EVENT_PLAYER_ACTIVATED, CRHelper.PlayerActivated );
+
+end
+
+
+function CRHelper.PlayerActivated( eventCode, initial )
+	if ( GetZoneId(GetUnitZoneIndex("player")) == CRHelper.trialZoneId ) then
+		if ( not CRHelper.active ) then
+
+			d("Inside Cloudrest, CRHelper is now enabled!")
+
+			CRHelper.active = true;
+			CRHelper.StopMonitoringFight()
+
+			CRHelper:RegisterRoaringFlare()
+
+			CRHelper:registerVoltaicCurrent()
+			CRHelper:registerVoltaicOverload()
+
+			CRHelper:registerHoarfrost()
+
+			EVENT_MANAGER:RegisterForEvent("CloudrestWeaponSwap", EVENT_ACTIVE_WEAPON_PAIR_CHANGED, CRHelper.WeaponSwap )
+			EVENT_MANAGER:AddFilterForEvent("CloudrestWeaponSwap", EVENT_ACTIVE_WEAPON_PAIR_CHANGED, REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER )
+
+			-- Main Boss Interrupt Mechanic
+			EVENT_MANAGER:RegisterForEvent("ShadowSplashCast", EVENT_COMBAT_EVENT, CRHelper.ShadowSplashCast)
+			EVENT_MANAGER:AddFilterForEvent("ShadowSplashCast", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, CRHelper.shadowSplashCastId)
+
+			-- Beam mechanic that comes from main boss head
+			EVENT_MANAGER:RegisterForEvent("Beam", EVENT_COMBAT_EVENT, CRHelper.Beam)
+			EVENT_MANAGER:AddFilterForEvent("Beam", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, CRHelper.beamId )
+
+			-- Register for when portal cooldown starts
+			EVENT_MANAGER:RegisterForEvent("StartSRealmCD", EVENT_COMBAT_EVENT, CRHelper.startSRealmCoolDown )
+			EVENT_MANAGER:AddFilterForEvent("StartSRealmCD", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID , CRHelper.Start_SRealm_CD )
+
+			-- Register for BossReset
+			EVENT_MANAGER:RegisterForEvent("BossReset", EVENT_COMBAT_EVENT, CRHelper.ResetPortalTimer )
+			EVENT_MANAGER:AddFilterForEvent("BossReset", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, CRHelper.BossReset )
+
+			-- Resgister for Portal Spawn
+			EVENT_MANAGER:RegisterForEvent("portalSpawn", EVENT_COMBAT_EVENT, CRHelper.PortalPhase )
+			EVENT_MANAGER:AddFilterForEvent("portalSpawn", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, CRHelper.PortalSpawn )
+
+
+			-- Resgister for when portal closes
+			EVENT_MANAGER:RegisterForEvent("portalEnd", EVENT_COMBAT_EVENT, CRHelper.PortalPhaseEnd )
+			EVENT_MANAGER:AddFilterForEvent("portalEnd", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, CRHelper.PortalEnd )
+
+			CRHelper.PlayerCombatState() -- not being used it
+
+		end
+	else
+		if ( CRHelper.active ) then
+			
+			d("Outside Cloudrest, CRHelper is now disabled!")
+
+			CRHelper.active = false
+			CRHelper.StopMonitoringFight()
+			
+			-- UnRegister to all subscribed Events
+
+			EVENT_MANAGER:UnregisterForEvent("CloudrestWeaponSwap", EVENT_ACTIVE_WEAPON_PAIR_CHANGED)
+			EVENT_MANAGER:UnregisterForEvent("ShadowSplashCast", EVENT_COMBAT_EVENT)
+			EVENT_MANAGER:UnregisterForEvent("Beam", EVENT_COMBAT_EVENT)
+			EVENT_MANAGER:UnregisterForEvent("StartSRealmCD", EVENT_COMBAT_EVENT)
+			EVENT_MANAGER:UnregisterForEvent("BossReset", EVENT_COMBAT_EVENT)
+			EVENT_MANAGER:UnregisterForEvent("portalSpawn", EVENT_COMBAT_EVENT)
+			EVENT_MANAGER:UnregisterForEvent("RoaringFlare", EVENT_COMBAT_EVENT)
+
+			-- UnRegister all subscribed VoltaicCurrent events
+			for i, id in ipairs(CRHelper.VoltaicCurrentIds) do
+				EVENT_MANAGER:UnregisterForEvent("VoltaicCurrent" .. i, EVENT_COMBAT_EVENT)
+			end
+
+			-- UnRegister all subscribed VoltaicOverload events 
+			for i, id in ipairs(CRHelper.VoltaicOverloadIds) do
+				EVENT_MANAGER:UnregisterForEvent("VoltaicOverload" .. i, EVENT_EFFECT_CHANGED)
+			end
+
+			-- UnRegister all subscribed Hoarfrost synergy events 
+			for i, id in ipairs(CRHelper.HoarfrostSynergyIds) do
+				EVENT_MANAGER:UnregisterForEvent("HoarfrostSynergy" .. i, EVENT_COMBAT_EVENT)
+			end	
+
+
+			EVENT_MANAGER:UnregisterForUpdate(CRHelper.name);
+
+		end
+	end
+end
+
+function CRHelper.PlayerCombatState( )
+	if ( IsUnitInCombat("player") and string.find(string.lower(GetUnitName("boss1")), "Z'Maja") ) then
+		CRHelper.StartMonitoringFight()
+	else
+		-- Avoid false positives of combat end, often caused by combat rezzes
+		zo_callLater(function() if (not IsUnitInCombat("player")) then CRHelper.StopMonitoringFight() end end, 3000)
+	end
+end
+
+function CRHelper.StartMonitoringFight( )
+	CRHelper.monitoringFight = true
+end
+
+function CRHelper.StopMonitoringFight( )
+	CRHelper.monitoringFight = false
 end
 
 -- This function will be called when engaging Main Boss
@@ -155,12 +239,9 @@ function CRHelper.PortalPhase(eventCode, result, isError, abilityName, abilityGr
 
 end
 
--- Will fix the 
 function CRHelper.PortalPhaseEnd(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
-
 	-- Will fix interrupt message of shadow realm boss from displaying after portal closes 
 	CRInterrupt:SetHidden(true)
-
 end
 
 -- Timer for portal spawn
@@ -230,12 +311,6 @@ function CRHelper:registerHoarfrost()
 
 end
 
-function CRHelper.OnAddOnLoaded(event, addonName)
-  -- The event fires each time *any* addon loads - but we only care about when our own addon loads.
-  if addonName == CRHelper.name then
-    CRHelper:Initialize()
-  end
-end
 
 function CRHelper.VoltaicCurrent(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
 	
