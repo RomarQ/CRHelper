@@ -169,6 +169,7 @@ function CRHelper.PlayerActivated( eventCode, initial )
 			EVENT_MANAGER:UnregisterForEvent("BossReset", EVENT_COMBAT_EVENT)
 			EVENT_MANAGER:UnregisterForEvent("portalSpawn", EVENT_COMBAT_EVENT)
 			EVENT_MANAGER:UnregisterForEvent("RoaringFlare", EVENT_COMBAT_EVENT)
+			EVENT_MANAGER:UnregisterForEvent("HoarfrostSynergy", EVENT_COMBAT_EVENT)
 
 			-- UnRegister all subscribed VoltaicCurrent events
 			for i, id in ipairs(CRHelper.voltaicCurrentIds) do
@@ -180,7 +181,7 @@ function CRHelper.PlayerActivated( eventCode, initial )
 				EVENT_MANAGER:UnregisterForEvent("VoltaicOverload" .. i, EVENT_EFFECT_CHANGED)
 			end
 
-			EVENT_MANAGER:UnregisterForUpdate(CRHelper.name);
+			EVENT_MANAGER:UnregisterForUpdate(CRHelper.name)
 
 		end
 	end
@@ -724,15 +725,9 @@ SLASH_COMMANDS["/cr"] = function ( command )
 	if ( command == 'unlock' ) then
 		-- Show dummy text so user can move the window
 
-		CRHelper.FireTimerShow("FIRE INC")
-
-		CRShock:SetHidden(false)
-		CRShock_Timer:SetAlpha(1)
-		CRShock_Timer:SetText("SHOCK INC")
-
-		CRFrost:SetHidden(false)
-		CRFrost_Timer:SetAlpha(1)
-		CRFrost_Timer:SetText("FROST INC")
+		CRHelper.FireControlShow("FIRE INC")
+		CRHelper.FrostControlShow("FROST INC")
+		CRHelper.ShockControlShow("SHOCK INC")
 
 		CRInterrupt:SetHidden(false)
 		CRInterrupt_Warning:SetText("Interrupt the Hypnotard!")
@@ -747,18 +742,9 @@ SLASH_COMMANDS["/cr"] = function ( command )
 
 	if ( command == 'lock' ) then
 
-		CRHelper.FireTimerHide()
-
-		CRShock:SetHidden(true)
-		CRShock_Timer:SetAlpha(0)
-		CRShock_Timer:SetText("")
-		
-		CRFrost:SetHidden(true)
-		CRFrost_Timer:SetAlpha(0)
-		CRFrost_Timer:SetText("")
-
-		CRInterrupt:SetHidden(true)
-		CRInterrupt_Warning:SetText("")
+		CRHelper.FireControlHide()
+		CRHelper.FrostControlHide()
+		CRHelper.ShockControlHide()
 
 		CRBeam:SetHidden(true)
 		CRBeam_Warning:SetText( '' )
