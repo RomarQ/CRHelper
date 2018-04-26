@@ -3,6 +3,14 @@ CRHelper = {
 	version	= "1",
 	varVersion = 1,
 	trialZoneId = 1051,
+	
+	defaultSettings = {
+		trackRoaringFlare = true,
+		trackHoarfrost = true,
+		trackVoltaicOverload = true,
+		trackLaserBeam = true,
+		trackShadowSplashCast = true
+	}
 
 	-- core flags
 	active = false,	-- true when inside Cloudrest
@@ -93,7 +101,7 @@ end
 function CRHelper.Init()
 
 	-- Gets configs from savedVariables, if file doesn't exist then also creates it
-	CRHelper.savedVariables = ZO_SavedVars:New("CRHelperSavedVariables", CRHelper.varVersion , nil, {})
+	CRHelper.savedVariables = ZO_SavedVars:New("CRHelperSavedVariables", CRHelper.varVersion , nil, CRHelper.defaultSettings)
 	d('ola')
 	-- Builds a Settings menu on addon settings tab
 	CRHelper:buildMenu(CRHelper.savedVariables)
