@@ -10,7 +10,7 @@ CRHelper = {
 		trackVoltaicOverload = true,
 		trackLaserBeam = true,
 		trackShadowSplashCast = true
-	}
+	},
 
 	-- core flags
 	active = false,	-- true when inside Cloudrest
