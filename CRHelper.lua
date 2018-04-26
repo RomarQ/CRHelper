@@ -34,18 +34,18 @@ CRHelper = {
 
 	----- Hoarfrost (FROST) -----
 
-	hoarfrostIds = {103760, 105151},
-	hoarfrostSynergyId = 103697,
-	hoarfrostDuration = 10, -- how many seconds until synergy available
-	hoarfrostMessage = "|c00FFFF<<a:1>>|r: |c1E90FF<<2>>|r", -- name: <<1>> countdown: <<2>>
-	hoarfrostSynergyMessage = "|c1E90FF<<a:1>>|r DROPS FROST!", -- name: <<1>>
-	
-	frostStarted = false,
-	frostEffectGained = false,
-	frostTargetName = "", -- Hoarfrost target name
-	frostCount = 0,  -- Hoarfrost counter
-	frostAlpha = 1,  -- Hoarfrost counter opacity
-	frostSynergy = false, -- Hoarfrost synergy available
+		hoarfrostIds = {103760, 105151},
+		hoarfrostSynergyId = 103697,
+		hoarfrostDuration = 10, -- how many seconds until synergy available
+		hoarfrostMessage = "|c00FFFF<<a:1>>|r: |c1E90FF<<2>>|r", -- name: <<1>> countdown: <<2>>
+		hoarfrostSynergyMessage = "|c1E90FF<<a:1>>|r DROPS FROST!", -- name: <<1>>
+		
+		frostStarted = false,
+		frostEffectGained = false,
+		frostTargetName = "", -- Hoarfrost target name
+		frostCount = 0,  -- Hoarfrost counter
+		frostAlpha = 1,  -- Hoarfrost counter opacity
+		frostSynergy = false, -- Hoarfrost synergy available
 
 	----- /Hoarfrost (FROST) -----
 
@@ -58,6 +58,7 @@ CRHelper = {
 		-- Big shock aoe on a player (lasts 10 seconds)
 		voltaicOverloadIds = {87346} ,
 
+		shockStarted = false,
 		shockCount = 0,  -- Voltaic Overload counter
 		shockAlpha = 1,  -- Voltaic Overload counter opacity
 		swapped = false, -- Whether a player swapped his weapons after getting Voltaic Overload debuff
@@ -375,6 +376,18 @@ function CRHelper.HoarfrostSynergy(eventCode, result, isError, abilityName, abil
 		CRHelper.FrostControlShow(targetType == COMBAT_UNIT_TYPE_PLAYER and "DROP NOW!" or zo_strformat(CRHelper.hoarfrostSynergyMessage, LUNIT:GetNameForUnitId(targetUnitId)))
 		PlaySound(SOUNDS.DUEL_START)
 
+		-- after 5s don't wait for event and hide the message
+		-- to prevent an issue when the message stays inside shadow realm, because people inside it don't recieve some events from people outside
+		zo_callLater(
+			function()
+				if (CRHelper.frostSynergy) then
+					CRHelper.frostSynergy = false
+					CRHelper.FrostControlHide()
+				end
+			end,
+			5000
+		)
+
 	elseif (result == ACTION_RESULT_EFFECT_FADED) then
 
 		CRHelper.frostSynergy = false
@@ -429,7 +442,7 @@ end
 
 function CRHelper.VoltaicCurrent(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
 	
-	if ( not CRHelper.savedVariables.trackVoltaicOverload) then return end
+	if (not CRHelper.savedVariables.trackVoltaicOverload) then return end
 
 	-- If it's not on yourself, then just ignore it
 	if (targetType ~= COMBAT_UNIT_TYPE_PLAYER) then return end
@@ -445,14 +458,20 @@ end
 
 function CRHelper.VoltaicOverload(eventCode, changeType, effectSlot, effectName, unitTag, beginTime, endTime, stackCount, iconName,  buffType, effectType, abilityType, statusEffectType)
 
-	if ( not CRHelper.savedVariables.trackVoltaicOverload) then return end
+	if (not CRHelper.savedVariables.trackVoltaicOverload) then return end
 
 	-- If it's not on yourself, then just ignore it
 	if (unitTag ~= "player") then return end
 
 	if (changeType == EFFECT_RESULT_FADED) then
-		CRHelper.ShockTimerStopAndHide()
+
+		CRHelper.shockStarted = false
+		CRHelper.ShockTimerStop()
+		CRShock_Label:SetText(string.format("|c98FB98%s|r", "CAN SWAP"))
+		CRHelper.FadeOutControl(CRShock, 1000)
+
     elseif (changeType == EFFECT_RESULT_GAINED) or (changeType == EFFECT_RESULT_UPDATED) then
+		CRHelper.shockStarted = true
 		CRHelper.swapped = false
 		CRHelper.EnableShockTimer(beginTime, endTime)
     end
@@ -461,9 +480,9 @@ end
 
 function CRHelper.WeaponSwap()
 
-	if (CRHelper.shockCount > 0) then
+	if (CRHelper.shockStarted and not CRHelper.swapped) then
 		CRHelper.swapped = true
-		CRShock_Label:SetText("NO SWAP: " .. string.format("%01d", CRHelper.shockCount))
+		CRHelper.ShockControlShow("NO SWAP: " .. string.format("%01d", CRHelper.shockCount))
 	end
 
 end
@@ -486,19 +505,23 @@ function CRHelper.ShockTimerTick()
 
 	CRHelper.shockCount = CRHelper.shockCount - 1
 
-	if (CRHelper.shockCount < 0) then
-		CRHelper.ShockTimerStopAndHide()
-	else
-		CRShock_Label:SetText(CRHelper.swapped and "NO SWAP: " .. string.format("%01d", CRHelper.shockCount) or "SWAP NOW!")
+	if (CRHelper.shockCount >=0) then
+		CRHelper.ShockControlShow(CRHelper.swapped and "NO SWAP: " .. string.format("%01d", CRHelper.shockCount) or "SWAP NOW!")
 		PlaySound(SOUNDS.COUNTDOWN_TICK)
 	end
 
 end
 
-function CRHelper.ShockTimerStopAndHide()
+function CRHelper.ShockTimerStop()
 
 	EVENT_MANAGER:UnregisterForUpdate("ShockTimer")
 	CRHelper.shockCount = 0
+
+end
+
+function CRHelper.ShockTimerStopAndHide()
+
+	CRHelper.ShockTimerStop()
 	CRHelper.ShockControlHide()
 
 end
@@ -573,6 +596,7 @@ function CRHelper.FadeOutControl(control, duration)
     timeline:SetPlaybackType(ANIMATION_PLAYBACK_ONE_SHOT)
 	timeline:SetHandler('OnStop', function()
         control:SetHidden(true)
+		control:SetAlpha(1)
     end)
     timeline:PlayFromStart()
 
