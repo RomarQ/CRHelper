@@ -1,7 +1,13 @@
 
 function CRHelper.buildMenu( savedVars )
-    local LAM = LibStub('LibAddonMenu-2.0')
-    local settings = savedVars
+	local LAM = LibStub('LibAddonMenu-2.0')
+	local LibPI = LibStub:GetLibrary("LibPositionIndicator")
+	local settings = savedVars
+	
+	local function SetSavedVars(control, value)
+		settings[control] = value
+		CRHelper.savedVariables[control] = value
+	end
 
     local panelInfo = {
         type = 'panel',
@@ -94,6 +100,46 @@ function CRHelper.buildMenu( savedVars )
 			setFunc = function(value)
 				CRHelper.savedVariables.trackPortalTimer = value or false
 			end
+		},
+		{
+			type = "colorpicker",
+			name = "Arrow Color",
+			default = ZO_ColorDef:New(unpack(CRHelper.savedVariables.positionIndicatorColor)),
+			getFunc = function() return unpack(CRHelper.savedVariables.positionIndicatorColor) end,
+			setFunc = function(r, g, b)
+				SetSavedVars("positionIndicatorColor", {r, g, b})
+				LibPI:ApplyStyle()
+			end,
+			width = "half"
+		},
+		{
+			type = "dropdown",
+			name = "Arrow Texture",
+			choices = {"Round Arrow" , "Arrow"},
+			choicesValues = {1, 2},
+			getFunc = function() return CRHelper.savedVariables.positionIndicatorTexture end,
+			setFunc = function(value)
+				SetSavedVars("positionIndicatorTexture", value)
+				LibPI:ApplyStyle()
+			end,
+			width = "half",
+			default = settings.positionIndicatorTexture,
+		},
+		{
+			type = "slider",
+			name = "Arrow Scale",
+			min = 0,
+			max = 2,
+			step = 0.1,
+			decimals = 1,
+			clampInput = true,
+			getFunc = function() return CRHelper.savedVariables.positionIndicatorScale end,
+			setFunc = function(value)
+				SetSavedVars("positionIndicatorScale", value)
+				LibPI:ApplyStyle()
+			end,
+			default = settings.positionIndicatorScale,
+			width = "half",
 		},
 	}
 

@@ -6,6 +6,7 @@
 
 libs/LibStub/LibStub.lua
 libs/LibUnits/LibUnits.lua
+libs/LibPositionIndicator/LibPositionIndicator.lua
 libs/LibAddonMenu-2.0/LibAddonMenu-2.0.lua
 libs/LibAddonMenu-2.0\controls\panel.lua
 libs/LibAddonMenu-2.0\controls\submenu.lua

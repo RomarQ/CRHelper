@@ -5,14 +5,21 @@ CRHelper = {
 	trialZoneId = 1051,
 	
 	defaultSettings = {
+
 		trackRoaringFlare = true,
 		trackHoarfrost = true,
 		trackVoltaicOverload = true,
 		trackLaserBeam = true,
-		trackShadowSplashCast = true
+		trackShadowSplashCast = true,
+
+		positionIndicatorTexture = 1,
+		positionIndicatorColor = { 1, 1, 1, 1 },
+		positionIndicatorAlpha = 1,
+		positionIndicatorScale = 1.20
+
 	},
 
-	-- core flags
+	-- Core flags
 	active = false,	-- true when inside Cloudrest
 	monitoringFight = false, -- true when inCombat agains Z'Maja
 
@@ -37,6 +44,8 @@ CRHelper = {
 		fireStarted = false,
 		fireTargetName = "", -- Roaring Flare target name
 		fireCount = 0,  -- Roaring Flare counter
+
+		fireUnitTag = "player",
 	----- /ROARING FLARE (FIRE) -----
 	
 
@@ -88,6 +97,7 @@ CRHelper = {
 
 
 LUNIT = LibStub:GetLibrary("LibUnits")
+LibPI = LibStub:GetLibrary("LibPositionIndicator")
 
 function CRHelper.OnAddOnLoaded(event, addonName)
 	-- The event fires each time *any* addon loads - but we only care about when our own addon loads.
@@ -102,7 +112,7 @@ function CRHelper.Init()
 
 	-- Gets configs from savedVariables, if file doesn't exist then also creates it
 	CRHelper.savedVariables = ZO_SavedVars:New("CRHelperSavedVariables", CRHelper.varVersion , nil, CRHelper.defaultSettings)
-	d('ola')
+	
 	-- Builds a Settings menu on addon settings tab
 	CRHelper:buildMenu(CRHelper.savedVariables)
 
@@ -168,6 +178,7 @@ function CRHelper.PlayerActivated( eventCode, initial )
 
 			CRHelper.active = false
 			CRHelper.StopMonitoringFight()
+			LibPI:EndUpdate()
 			
 			-- UnRegister to all subscribed Events
 
@@ -294,7 +305,11 @@ end
 function CRHelper:RegisterRoaringFlare()
 
 	EVENT_MANAGER:RegisterForEvent("RoaringFlare", EVENT_COMBAT_EVENT, self.RoaringFlare)
-	EVENT_MANAGER:AddFilterForEvent("RoaringFlare", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, self.roaringFlareId)	
+	EVENT_MANAGER:AddFilterForEvent("RoaringFlare", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, self.roaringFlareId)
+	
+	-- Starts a Position Indicator that will allow everyone to know where the player is.
+	LibPI:CreateTexture()
+	LibPI:HandleUpdate()
 
 end
 
@@ -305,8 +320,13 @@ function CRHelper.RoaringFlare(eventCode, result, isError, abilityName, abilityG
 	if (result == ACTION_RESULT_BEGIN) then
 
 		CRHelper.fireStarted = true
+		CRHelper.fireUnitTag = LUNIT:GetUnitTagForUnitId(targetUnitId) -- get tag of target
 		CRHelper.fireTargetName = LUNIT:GetNameForUnitId(targetUnitId) -- get name of target
 		CRHelper.fireCount = CRHelper.roaringFlareDuration -- countdown
+
+		if (targetType ~= COMBAT_UNIT_TYPE_PLAYER) then
+			LibPI:PostitionIndicatorShow()
+		end
 
 		EVENT_MANAGER:UnregisterForUpdate("FireTimer")
 		EVENT_MANAGER:RegisterForUpdate("FireTimer", 1000, CRHelper.FireTimerTick)
@@ -316,6 +336,8 @@ function CRHelper.RoaringFlare(eventCode, result, isError, abilityName, abilityG
 
 	elseif (result == ACTION_RESULT_EFFECT_FADED) then
 
+		LibPI:PostitionIndicatorHide()
+	
 		CRHelper.fireStarted = false
 		CRHelper.FireTimerStopAndHide()
 
