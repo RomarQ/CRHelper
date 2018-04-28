@@ -55,13 +55,15 @@ function lib:EndUpdate()
 	ARROW:SetHidden(true)
 end
 
+local function GetDistancePlayerToPlayer(x1, y1, x2, y2)
+	return math.sqrt((x2 - x1) ^ 2 + (y2 - y1) ^ 2)
+end
+
 local function AngleRotation(angle)
 	return angle - 2*math.pi * math.floor( (angle + math.pi) / 2*math.pi )
 end
 
-local function GetRotationAngle()
-	local playerX, playerY = GetMapPlayerPosition(PLAYER_UNIT_TAG)
-	local targetX, targetY = GetMapPlayerPosition(CRHelper.fireUnitTag)
+local function GetRotationAngle(playerX, playerY, targetX, targetY)
 	return AngleRotation(-1*(AngleRotation(GetPlayerCameraHeading()) - math.atan2(playerX-targetX, playerY-targetY)))
 end
 
@@ -74,7 +76,19 @@ local function StartUpdate()
         "UpdatePositionIndicator", 
         REFRESH_TIME, 
         function()
-            ARROW:SetTextureRotation( GetRotationAngle() )
+
+			local playerX, playerY = GetMapPlayerPosition(PLAYER_UNIT_TAG)
+			local targetX, targetY = GetMapPlayerPosition(CRHelper.fireUnitTag)
+			local distance = GetDistancePlayerToPlayer(playerX, playerY, targetX, targetY)
+
+			if (distance < CRHelper.roaringFlareRadius) then
+				ARROW:SetColor(0, 1, 0, 1)
+				ARROW:SetTextureRotation(math.pi)
+			else
+				ARROW:SetColor(unpack(CRHelper.savedVariables.positionIndicatorColor))
+				ARROW:SetTextureRotation(GetRotationAngle(playerX, playerY, targetX, targetY))
+			end
+
         end
     )
 end

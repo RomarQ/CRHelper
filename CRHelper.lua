@@ -41,6 +41,7 @@ CRHelper = {
 		roaringFlareId = 103531, -- {103531, 103922, 103921}
 		roaringFlareDuration = 6, -- countdown for timer
 		roaringFlareMessage = "|cFFA500<<a:1>>|r: |cFF4500<<2>>|r", -- name: <<1>> countdown: <<2>>
+		roaringFlareRadius = 0.0035, -- used by LibPositionIndicator to determine if a player is within fire aoe radius
 
 		fireStarted = false,
 		fireTargetName = "", -- Roaring Flare target name
