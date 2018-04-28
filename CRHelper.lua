@@ -14,7 +14,7 @@ CRHelper = {
 
 		positionIndicatorEnabled = true,
 		positionIndicatorTexture = 1,
-		positionIndicatorColour = { 1, 1, 1, 1 },
+		positionIndicatorColor = { 1, 1, 1, 1 },
 		positionIndicatorAlpha = 1,
 		positionIndicatorScale = 1.20
 
