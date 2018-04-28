@@ -113,6 +113,9 @@ function CRHelper.Init()
 
 	-- Gets configs from savedVariables, if file doesn't exist then also creates it
 	CRHelper.savedVariables = ZO_SavedVars:New("CRHelperSavedVariables", CRHelper.varVersion , nil, CRHelper.defaultSettings)
+
+	-- Create Indicator control to make it accessible in menu
+	LibPI:CreateTexture()
 	
 	-- Builds a Settings menu on addon settings tab
 	CRHelper:buildMenu(CRHelper.savedVariables)
@@ -309,7 +312,6 @@ function CRHelper:RegisterRoaringFlare()
 	EVENT_MANAGER:AddFilterForEvent("RoaringFlare", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, self.roaringFlareId)
 	
 	-- Starts a Position Indicator that will allow everyone to know where the player is.
-	LibPI:CreateTexture()
 	LibPI:HandleUpdate()
 
 end

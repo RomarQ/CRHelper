@@ -123,7 +123,7 @@ function CRHelper.buildMenu( savedVars )
 				SetSavedVars("positionIndicatorColor", {r, g, b})
 				LibPI:ApplyStyle()
 			end,
-			width = "half",
+			width = "full",
 			disabled = function() return not CRHelper.savedVariables.positionIndicatorEnabled end,
 		},
 		{
@@ -137,7 +137,7 @@ function CRHelper.buildMenu( savedVars )
 				SetSavedVars("positionIndicatorTexture", value)
 				LibPI:ApplyStyle()
 			end,
-			width = "half",
+			width = "full",
 			disabled = function() return not CRHelper.savedVariables.positionIndicatorEnabled end,
 		},
 		{
@@ -154,7 +154,7 @@ function CRHelper.buildMenu( savedVars )
 				SetSavedVars("positionIndicatorScale", value)
 				LibPI:ApplyStyle()
 			end,
-			width = "half",
+			width = "full",
 			disabled = function() return not CRHelper.savedVariables.positionIndicatorEnabled end,
 		},
 	}
