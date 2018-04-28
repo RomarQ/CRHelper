@@ -83,11 +83,11 @@ local function StartUpdate()
 
 			if (distance < CRHelper.roaringFlareRadius) then
 				ARROW:SetColor(0, 1, 0, 1)
-				ARROW:SetTextureRotation(math.pi)
 			else
 				ARROW:SetColor(unpack(CRHelper.savedVariables.positionIndicatorColor))
-				ARROW:SetTextureRotation(GetRotationAngle(playerX, playerY, targetX, targetY))
 			end
+			
+			ARROW:SetTextureRotation(GetRotationAngle(playerX, playerY, targetX, targetY))
 
         end
     )
