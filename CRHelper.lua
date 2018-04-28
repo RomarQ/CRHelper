@@ -12,8 +12,9 @@ CRHelper = {
 		trackLaserBeam = true,
 		trackShadowSplashCast = true,
 
+		positionIndicatorEnabled = true,
 		positionIndicatorTexture = 1,
-		positionIndicatorColor = { 1, 1, 1, 1 },
+		positionIndicatorColour = { 1, 1, 1, 1 },
 		positionIndicatorAlpha = 1,
 		positionIndicatorScale = 1.20
 
@@ -335,8 +336,6 @@ function CRHelper.RoaringFlare(eventCode, result, isError, abilityName, abilityG
 		PlaySound(SOUNDS.DUEL_START)
 
 	elseif (result == ACTION_RESULT_EFFECT_FADED) then
-
-		LibPI:PostitionIndicatorHide()
 	
 		CRHelper.fireStarted = false
 		CRHelper.FireTimerStopAndHide()
@@ -381,6 +380,7 @@ end
 function CRHelper.FireControlHide()
 
 	CRFire:SetHidden(true)
+	LibPI:PostitionIndicatorHide()
 
 end
 

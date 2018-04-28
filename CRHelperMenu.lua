@@ -102,6 +102,19 @@ function CRHelper.buildMenu( savedVars )
 			end
 		},
 		{
+			type = "header",
+			name = "Roaring Flare Options"
+		},
+		{
+			type = "checkbox",
+			name = "Display Target Direction",
+            default = settings.positionIndicatorEnabled,
+			getFunc = function() return CRHelper.savedVariables.positionIndicatorEnabled end,
+			setFunc = function(value)
+				CRHelper.savedVariables.positionIndicatorEnabled = value
+			end
+		},
+		{
 			type = "colorpicker",
 			name = "Arrow Color",
 			default = ZO_ColorDef:New(unpack(CRHelper.savedVariables.positionIndicatorColor)),
@@ -110,36 +123,39 @@ function CRHelper.buildMenu( savedVars )
 				SetSavedVars("positionIndicatorColor", {r, g, b})
 				LibPI:ApplyStyle()
 			end,
-			width = "half"
+			width = "half",
+			disabled = function() return not CRHelper.savedVariables.positionIndicatorEnabled end,
 		},
 		{
 			type = "dropdown",
 			name = "Arrow Texture",
 			choices = {"Round Arrow" , "Arrow"},
 			choicesValues = {1, 2},
+			default = settings.positionIndicatorTexture,
 			getFunc = function() return CRHelper.savedVariables.positionIndicatorTexture end,
 			setFunc = function(value)
 				SetSavedVars("positionIndicatorTexture", value)
 				LibPI:ApplyStyle()
 			end,
 			width = "half",
-			default = settings.positionIndicatorTexture,
+			disabled = function() return not CRHelper.savedVariables.positionIndicatorEnabled end,
 		},
 		{
 			type = "slider",
 			name = "Arrow Scale",
-			min = 0,
+			min = 1,
 			max = 2,
 			step = 0.1,
 			decimals = 1,
 			clampInput = true,
+			default = settings.positionIndicatorScale,
 			getFunc = function() return CRHelper.savedVariables.positionIndicatorScale end,
 			setFunc = function(value)
 				SetSavedVars("positionIndicatorScale", value)
 				LibPI:ApplyStyle()
 			end,
-			default = settings.positionIndicatorScale,
 			width = "half",
+			disabled = function() return not CRHelper.savedVariables.positionIndicatorEnabled end,
 		},
 	}
 

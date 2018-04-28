@@ -10,10 +10,7 @@ REFRESH_TIME = 40
 -- Functions
 
 local function GetTexturePath()
-	local textureIndex = CRHelper.savedVariables.positionIndicatorTexture
-	if CRHelper.savedVariables.positionIndicatorTexture == nil then
-		textureIndex = 1
-	end
+	local textureIndex = CRHelper.savedVariables.positionIndicatorTexture or 1
 	return CRHelper.name.."/texture/arrow"..textureIndex..".dds"
 end
 
@@ -64,8 +61,8 @@ end
 
 local function GetRotationAngle()
 	local playerX, playerY = GetMapPlayerPosition(PLAYER_UNIT_TAG)
-	local leaderX, leaderY = GetMapPlayerPosition(CRHelper.fireUnitTag)
-	return AngleRotation(-1*(AngleRotation(GetPlayerCameraHeading()) - math.atan2(playerX-leaderX, playerY-leaderY)))
+	local targetX, targetY = GetMapPlayerPosition(CRHelper.fireUnitTag)
+	return AngleRotation(-1*(AngleRotation(GetPlayerCameraHeading()) - math.atan2(playerX-targetX, playerY-targetY)))
 end
 
 local function StartUpdate()
@@ -74,7 +71,7 @@ local function StartUpdate()
     
 	ARROW:SetHidden(true)
 	EVENT_MANAGER:RegisterForUpdate(
-        "UpdateCompassHeading", 
+        "UpdatePositionIndicator", 
         REFRESH_TIME, 
         function()
             ARROW:SetTextureRotation( GetRotationAngle() )
@@ -86,8 +83,9 @@ function lib:HandleUpdate()
 
 	-- Starts the update control.
 
-	if CRHelper.active and IsUnitGrouped(PLAYER_UNIT_TAG) then
-        StartUpdate()
+	if CRHelper.active and CRHelper.savedVariables.positionIndicatorEnabled and IsUnitGrouped( PLAYER_UNIT_TAG ) then
+		StartUpdate()
+		return
 	end
 
 	lib:EndUpdate()
