@@ -13,8 +13,8 @@ function CRHelper.buildMenu( savedVars )
         type = 'panel',
         name = CRHelper.name,
         displayName = 'Cloudrest Helper',
-        author = "@Andy.s & @RoMarQ",
-        version = "v"..CRHelper.version,
+        author = "@andy.s & @RoMarQ",
+        version = "v" .. CRHelper.version,
         registerForRefresh = true
     }
 
