@@ -34,7 +34,7 @@ CRHelper = {
 		PortalSpawn = 103946,
 		PortalSpawnTipId = 100,
 		PortalEnd = 105218, -- 105218 only occurs after a portal wipe
-		PortalPhaseEnd = 109017,
+		PortalPhaseEndId = 109017,
 		--
 		portalTimer = 0,
 		stopPortalTimer = true,
@@ -176,6 +176,9 @@ function CRHelper.PlayerActivated( eventCode, initial )
 			EVENT_MANAGER:RegisterForEvent("BossReset", EVENT_COMBAT_EVENT, CRHelper.ResetPortalTimer )
 			EVENT_MANAGER:AddFilterForEvent("BossReset", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, CRHelper.BossReset )
 
+			EVENT_MANAGER:RegisterForEvent("PortalCD", EVENT_COMBAT_EVENT, CRHelper.PortalCoolDownStart )
+			EVENT_MANAGER:AddFilterForEvent("PortalCD", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, CRHelper.PortalPhaseEndId )
+
 			-- Register for Portal Spawn
 			--EVENT_MANAGER:RegisterForEvent("portalSpawn", EVENT_COMBAT_EVENT, CRHelper.PortalPhase )
 			--EVENT_MANAGER:AddFilterForEvent("portalSpawn", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, CRHelper.PortalSpawn )
@@ -209,6 +212,7 @@ function CRHelper.PlayerActivated( eventCode, initial )
 			--EVENT_MANAGER:UnregisterForEvent("portalSpawn", EVENT_COMBAT_EVENT)
 			EVENT_MANAGER:UnregisterForEvent("RoaringFlare", EVENT_COMBAT_EVENT)
 			EVENT_MANAGER:UnregisterForEvent("HoarfrostSynergy", EVENT_COMBAT_EVENT)
+			EVENT_MANAGER:UnregisterForEvent("PortalCD", EVENT_COMBAT_EVENT)
 
 			EVENT_MANAGER:UnregisterForEvent("inCombat", EVENT_PLAYER_COMBAT_STATE )
 
@@ -390,7 +394,7 @@ function CRHelper.PortalTimerUpdate()
 	CRHelperFrame_Timer:SetText(string.format(" Portal in : |c19db1c %d |r", CRHelper.portalTimer ))
 	
 	EVENT_MANAGER:UnregisterForUpdate("PortalTimer")
-	EVENT_MANAGER:RegisterForUpdate("PortalTimer", 1000, CRHelper.PortalTimerUpdate)
+	EVENT_MANAGER:RegisterForUpdate("PortalTimer", 1000, CRHelper.PortalTimerUpdate )
 
 end
 
