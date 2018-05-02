@@ -15,7 +15,9 @@ libs/LibAddonMenu-2.0/controls/header.lua
 libs/LibAddonMenu-2.0/controls/slider.lua
 libs/LibAddonMenu-2.0/controls/dropdown.lua
 libs/LibAddonMenu-2.0/controls/button.lua
+fonts/fonts.xml
 
 CRHelper.xml
 CRHelper.lua
 CRHelperMenu.lua
+CRHelperControls.lua

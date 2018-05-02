@@ -76,10 +76,10 @@ function CRHelper.buildMenu( savedVars )
 			type = "checkbox",
 			name = "Laser Beam",
 			tooltip = "Beam that comes from main boss head",
-            default = settings.trackLaserBeam,
-			getFunc = function() return CRHelper.savedVariables.trackLaserBeam end,
+            default = settings.trackCrushingDarkness,
+			getFunc = function() return CRHelper.savedVariables.trackCrushingDarkness end,
 			setFunc = function(value)
-				CRHelper.savedVariables.trackLaserBeam = value or false
+				CRHelper.savedVariables.trackCrushingDarkness = value or false
 			end
 		},
 		{
@@ -94,11 +94,20 @@ function CRHelper.buildMenu( savedVars )
 		},
 		{
 			type = "checkbox",
-			name = "Portal Timer (Not Working properly)",
+			name = "Portal Spawn/Timer",
             default = settings.trackPortalTimer,
 			getFunc = function() return CRHelper.savedVariables.trackPortalTimer end,
 			setFunc = function(value)
 				CRHelper.savedVariables.trackPortalTimer = value or false
+			end
+		},
+		{
+			type = "checkbox",
+			name = "Orbs Spawn",
+            default = settings.trackOrbSpawn,
+			getFunc = function() return CRHelper.savedVariables.trackOrbSpawn end,
+			setFunc = function(value)
+				CRHelper.savedVariables.trackOrbSpawn = value or false
 			end
 		},
 		{

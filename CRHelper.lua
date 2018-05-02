@@ -3,14 +3,17 @@ CRHelper = {
 	version	= "1",
 	varVersion = 1,
 	trialZoneId = 1051,
+	UI = WINDOW_MANAGER:CreateTopLevelWindow("CRHelperUI"),
 	
 	defaultSettings = {
 
 		trackRoaringFlare = true,
 		trackHoarfrost = true,
 		trackVoltaicOverload = true,
-		trackLaserBeam = true,
+		trackCrushingDarkness = true,
 		trackShadowSplashCast = true,
+		trackPortalPhase = true,
+		trackOrbSpawn = true,
 
 		positionIndicatorEnabled = true,
 		positionIndicatorTexture = 1,
@@ -29,10 +32,14 @@ CRHelper = {
 		Start_SRealm_CD = 105890,
 		BossReset = 107478,
 		PortalSpawn = 103946,
-		PortalEnd = 105218,
+		PortalSpawnTipId = 100,
+		PortalEnd = 105218, -- 105218 only occurs after a portal wipe
+		PortalPhaseEnd = 109017,
 		--
 		portalTimer = 0,
 		stopPortalTimer = true,
+		--
+		currentPortalGroup = 1,
 
 	----- /Portal Phase (Shadow Realm) -----
 
@@ -88,6 +95,7 @@ CRHelper = {
 
 	----- (Beam) -----
 		beamId = 105161,
+		CrushingDarknessTipId = 102,
 	----- /(Beam) -----
 
 
@@ -95,6 +103,8 @@ CRHelper = {
 	----- Shadow Splash Cast (Interrupt) -----
 		shadowSplashCastId = 105123,
 	----- /Shadow Splash Cast (Interrupt) -----
+
+	OrbSpawnId = 105291,
 }
 
 
@@ -135,6 +145,8 @@ function CRHelper.PlayerActivated( eventCode, initial )
 
 			d("Inside Cloudrest, CRHelper is now enabled!")
 
+			CRHelper.StartOnScreenNotifications()
+
 			CRHelper.active = true;
 			CRHelper.StopMonitoringFight()
 
@@ -152,28 +164,31 @@ function CRHelper.PlayerActivated( eventCode, initial )
 			EVENT_MANAGER:RegisterForEvent("ShadowSplashCast", EVENT_COMBAT_EVENT, CRHelper.ShadowSplashCast)
 			EVENT_MANAGER:AddFilterForEvent("ShadowSplashCast", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, CRHelper.shadowSplashCastId)
 
-			-- Beam mechanic that comes from main boss head
-			EVENT_MANAGER:RegisterForEvent("Beam", EVENT_COMBAT_EVENT, CRHelper.Beam)
-			EVENT_MANAGER:AddFilterForEvent("Beam", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, CRHelper.beamId )
+			-- Register for when orbs spawn
+			EVENT_MANAGER:RegisterForEvent("OrbSpawn", EVENT_COMBAT_EVENT, CRHelper.OrbSpawn )
+			EVENT_MANAGER:AddFilterForEvent("OrbSpawn", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, CRHelper.OrbSpawnId )
 
 			-- Register for when portal cooldown starts
-			EVENT_MANAGER:RegisterForEvent("StartSRealmCD", EVENT_COMBAT_EVENT, CRHelper.startSRealmCoolDown )
-			EVENT_MANAGER:AddFilterForEvent("StartSRealmCD", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID , CRHelper.Start_SRealm_CD )
+			--EVENT_MANAGER:RegisterForEvent("StartSRealmCD", EVENT_COMBAT_EVENT, CRHelper.startSRealmCoolDown )
+			--EVENT_MANAGER:AddFilterForEvent("StartSRealmCD", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID , CRHelper.Start_SRealm_CD )
 
 			-- Register for BossReset
 			EVENT_MANAGER:RegisterForEvent("BossReset", EVENT_COMBAT_EVENT, CRHelper.ResetPortalTimer )
 			EVENT_MANAGER:AddFilterForEvent("BossReset", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, CRHelper.BossReset )
 
-			-- Resgister for Portal Spawn
-			EVENT_MANAGER:RegisterForEvent("portalSpawn", EVENT_COMBAT_EVENT, CRHelper.PortalPhase )
-			EVENT_MANAGER:AddFilterForEvent("portalSpawn", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, CRHelper.PortalSpawn )
+			-- Register for Portal Spawn
+			--EVENT_MANAGER:RegisterForEvent("portalSpawn", EVENT_COMBAT_EVENT, CRHelper.PortalPhase )
+			--EVENT_MANAGER:AddFilterForEvent("portalSpawn", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, CRHelper.PortalSpawn )
 
 
-			-- Resgister for when portal closes
+			-- Register for when portal closes
 			EVENT_MANAGER:RegisterForEvent("portalEnd", EVENT_COMBAT_EVENT, CRHelper.PortalPhaseEnd )
 			EVENT_MANAGER:AddFilterForEvent("portalEnd", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, CRHelper.PortalEnd )
+			
+			EVENT_MANAGER:RegisterForEvent("inCombat", EVENT_PLAYER_COMBAT_STATE, CRHelper.PlayerCombatState )
 
-			CRHelper.PlayerCombatState() -- not being used it
+			-- Register for any combat Tip
+			EVENT_MANAGER:RegisterForEvent("combatTip", EVENT_DISPLAY_ACTIVE_COMBAT_TIP, CRHelper.combatTip )
 
 		end
 	else
@@ -189,12 +204,15 @@ function CRHelper.PlayerActivated( eventCode, initial )
 
 			EVENT_MANAGER:UnregisterForEvent("CloudrestWeaponSwap", EVENT_ACTIVE_WEAPON_PAIR_CHANGED)
 			EVENT_MANAGER:UnregisterForEvent("ShadowSplashCast", EVENT_COMBAT_EVENT)
-			EVENT_MANAGER:UnregisterForEvent("Beam", EVENT_COMBAT_EVENT)
-			EVENT_MANAGER:UnregisterForEvent("StartSRealmCD", EVENT_COMBAT_EVENT)
+			--EVENT_MANAGER:UnregisterForEvent("StartSRealmCD", EVENT_COMBAT_EVENT)
 			EVENT_MANAGER:UnregisterForEvent("BossReset", EVENT_COMBAT_EVENT)
-			EVENT_MANAGER:UnregisterForEvent("portalSpawn", EVENT_COMBAT_EVENT)
+			--EVENT_MANAGER:UnregisterForEvent("portalSpawn", EVENT_COMBAT_EVENT)
 			EVENT_MANAGER:UnregisterForEvent("RoaringFlare", EVENT_COMBAT_EVENT)
 			EVENT_MANAGER:UnregisterForEvent("HoarfrostSynergy", EVENT_COMBAT_EVENT)
+
+			EVENT_MANAGER:UnregisterForEvent("inCombat", EVENT_PLAYER_COMBAT_STATE )
+
+			EVENT_MANAGER:UnregisterForEvent("combatTip", EVENT_DISPLAY_ACTIVE_COMBAT_TIP )
 
 			-- UnRegister all subscribed VoltaicCurrent events
 			for i, id in ipairs(CRHelper.voltaicCurrentIds) do
@@ -212,6 +230,64 @@ function CRHelper.PlayerActivated( eventCode, initial )
 	end
 end
 
+-------------------
+-- Create Labels for notifications
+-------------------
+function CRHelper.StartOnScreenNotifications()
+
+	CRHelper.UI:TopLevelWindow("CRHelperUI", GuiRoot, {GuiRoot:GetWidth(),GuiRoot:GetHeight()}, {CENTER,CENTER,0,0}, false)
+	--Reference the CRHelperUI layer as a scene fragment
+	CRHelper.UI.fragment = ZO_HUDFadeSceneFragment:New(CRHelperUI)
+	local onScreen = CRHelper.UI:Control( "CRH_OnScreen" , CRHelperUI , {800,32*1.5*7} , {CENTER,CENTER,0,-200} , false )
+	onScreen.backdrop = CRHelper.UI:Backdrop( "CRH_OnScreen_BG",		onScreen,		"inherit",		{CENTER,CENTER,0,0},	{0,0,0,0.7}, {0,0,0,1}, nil, true)
+	
+	onScreen.label_PortalSpawn = CRHelper.UI:Label(	"CRH_OnScreen_L_PortalSpawn" , onScreen , "inherit", {CENTER,CENTER,0,0} , "$(CRH_MEDIUM_FONT)|$(KB_36)|soft-shadow-thin" , nil , { 1 , 1 } , nil , true )
+	onScreen.label_CrushingDarkness = CRHelper.UI:Label(	"CRH_OnScreen_L_CrushingDarkness" , onScreen , "inherit", {CENTER,CENTER,0,0} , "$(CRH_MEDIUM_FONT)|$(KB_36)|soft-shadow-thin" , nil , { 1 , 1 } , nil , true )
+	onScreen.label_OrbsSpawn = CRHelper.UI:Label(	"CRH_OnScreen_L_OrbsSpawn" , onScreen , "inherit", {CENTER,CENTER,0,0} , "$(CRH_MEDIUM_FONT)|$(KB_36)|soft-shadow-thin" , nil , { 1 , 1 } , nil , true )
+	
+	onScreen:SetDrawTier(DT_HIGH)
+	onScreen.backdrop:SetEdgeTexture("",16,4,4)
+
+end
+
+-------------------
+-- Handles important combat tips during Z'Maja boss fight
+-------------------
+function CRHelper.combatTip( eventCode , activeCombatTipId )
+
+	local name, tipText, _icon = GetActiveCombatTipInfo(activeCombatTipId)
+
+	if( CRHelper.PortalSpawnTipId == activeCombatTipId and CRHelper.savedVariables.trackPortalPhase ) then
+
+		CRHelper.stopPortalTimer = true
+		CRHelperFrame:SetHidden(true)
+		
+		_G["CRH_OnScreen_L_PortalSpawn"]:SetText( "|c98FB98 Portal UP |r - Group " .. CRHelper.currentPortalGroup )
+		_G["CRH_OnScreen_L_PortalSpawn"]:SetHidden(false)
+
+		zo_callLater(function() _G["CRH_OnScreen_L_PortalSpawn"]:SetHidden(true) end , 5000)
+		
+		d("Portal Group: " .. CRHelper.currentPortalGroup)
+	
+		if ( CRHelper.currentPortalGroup == 1 ) then 
+			CRHelper.currentPortalGroup = 2
+		elseif ( CRHelper.currentPortalGroup == 2 ) then
+			CRHelper.currentPortalGroup = 1
+		end
+
+		return
+	
+	elseif ( CRHelper.CrushingDarknessTipId == activeCombatTipId and CRHelper.savedVariables.trackCrushingDarkness ) then
+
+		_G["CRH_OnScreen_L_CrushingDarkness"]:SetText( "|c442584 Beam is on you, move out of the group! |r" )
+		_G["CRH_OnScreen_L_CrushingDarkness"]:SetHidden(false)
+
+		zo_callLater(function() _G["CRH_OnScreen_L_CrushingDarkness"]:SetHidden(true) end , 5000)
+
+	end
+
+end
+
 function CRHelper.PlayerCombatState( )
 	if ( IsUnitInCombat("player") and string.find(string.lower(GetUnitName("boss1")), "Z'Maja") ) then
 		CRHelper.StartMonitoringFight()
@@ -227,7 +303,51 @@ end
 
 function CRHelper.StopMonitoringFight( )
 	CRHelper.monitoringFight = false
+
+	CRHelper.portalTimer = 0
+	CRHelperFrame:SetHidden(true)
+	CRHelper.stopPortalTimer = true
+
 end
+
+-------------------
+-- Fires a notification when orbs are going to spawn
+-------------------
+function CRHelper.OrbSpawn(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
+
+	if ( not CRHelper.savedVariables.trackOrbSpawn ) then return end
+
+	if ( result == ACTION_RESULT_EFFECT_FADED ) then
+		
+		_G["CRH_OnScreen_L_OrbsSpawn"]:SetText( "|ce2530b Orbs are UP! |r" )
+		_G["CRH_OnScreen_L_OrbsSpawn"]:SetHidden(false)
+		PlaySound(SOUNDS.SKILL_LINE_ADDED)
+
+		zo_callLater(function() _G["CRH_OnScreen_L_OrbsSpawn"]:SetHidden(true) end , 5000)
+
+	end
+
+end
+--------------------
+
+-------------------
+-- Shows a timer for next portal phase
+-------------------
+function CRHelper.PortalCoolDownStart(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
+
+	if ( not CRHelper.savedVariables.trackPortalPhase ) then return end
+
+	if ( result == ACTION_RESULT_EFFECT_FADED ) then
+		
+		CRHelper.portalTimer = 45
+		CRHelper.stopPortalTimer = false
+		CRHelperFrame:SetHidden(false)
+		CRHelper.PortalTimerUpdate()
+
+	end
+
+end
+--------------------
 
 -- This function will be called when engaging Main Boss
 function CRHelper.startSRealmCoolDown(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
@@ -236,10 +356,8 @@ function CRHelper.startSRealmCoolDown(eventCode, result, isError, abilityName, a
 
 	if ( result == ACTION_RESULT_EFFECT_GAINED ) then
 		
-		CRHelper.portalTimer = 28
-		CRHelper.stopPortalTimer = false
-		CRHelperFrame:SetHidden(false)
-		CRHelper.PortalTimerUpdate()
+		CRHelper.stopPortalTimer = true
+		CRHelperFrame:SetHidden(true)
 
 	end
 
@@ -249,25 +367,8 @@ end
 function CRHelper.ResetPortalTimer(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
 
 	if ( result == ACTION_RESULT_EFFECT_GAINED ) then
-		CRHelper.portalTimer = 0
-		CRHelperFrame:SetHidden(true)
-		CRHelper.stopPortalTimer = true
-	end
-
-end
-
--- This function is called on every portal spawn
-function CRHelper.PortalPhase(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
-
-	if ( not CRHelper.savedVariables.trackPortalTimer ) then return end
-
-	if ( result == ACTION_RESULT_EFFECT_GAINED ) then
-		
-		CRHelper.portalTimer = 100
-		CRHelper.stopPortalTimer = false
-		CRHelperFrame:SetHidden(false)
-		CRHelper.PortalTimerUpdate()
-
+		-- Sets starting group that goes to portal
+		CRHelper.currentPortalGroup = 1;
 	end
 
 end
@@ -280,24 +381,13 @@ end
 -- Timer for portal spawn
 function CRHelper.PortalTimerUpdate()
 
-	if ( CRHelper.stopPortalTimer ) then
+	if ( CRHelper.stopPortalTimer or CRHelper.portalTimer == 0 ) then
 		EVENT_MANAGER:UnregisterForUpdate("PortalTimer")
 		return
 	end
 
 	CRHelper.portalTimer = CRHelper.portalTimer - 1
-	if ( CRHelper.portalTimer > 20 ) then
-		CRHelperFrame_Timer:SetText(string.format(" Portal in : |c19db1c %d |r", CRHelper.portalTimer ))
-	else
-		CRHelperFrame_Timer:SetText(string.format(" Portal in : |cf20018 %d |r", CRHelper.portalTimer ))
-	end
-
-	if ( CRHelper.portalTimer == 0 ) then
-		CRHelper.stopPortalTimer = true
-		CRHelperFrame:SetHidden(true)
-		EVENT_MANAGER:UnregisterForUpdate("PortalTimer")
-		return
-	end
+	CRHelperFrame_Timer:SetText(string.format(" Portal in : |c19db1c %d |r", CRHelper.portalTimer ))
 	
 	EVENT_MANAGER:UnregisterForUpdate("PortalTimer")
 	EVENT_MANAGER:RegisterForUpdate("PortalTimer", 1000, CRHelper.PortalTimerUpdate)
@@ -595,23 +685,6 @@ function CRHelper.ShadowSplashCast(eventCode, result, isError, abilityName, abil
 	CRInterrupt_Warning:SetText("Interrupt the Hypnotard!")
 	CRInterrupt:SetHidden(false)
 	PlaySound(SOUNDS.SKILL_LINE_ADDED)
-
-end
-
-function CRHelper.Beam(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
-
-	if ( not CRHelper.savedVariables.trackLaserBeam) then return end
-
-	if ( result == ACTION_RESULT_EFFECT_FADED ) then
-		CRBeam:SetHidden(true)
-		return
-	end
-
-	if ( targetType == 1 ) then
-        CRBeam_Warning:SetText( 'Beam is on you, move out of the group!' )
-        CRBeam:SetHidden(false)
-        PlaySound(SOUNDS.SKILL_LINE_ADDED)
-    end
 
 end
 
