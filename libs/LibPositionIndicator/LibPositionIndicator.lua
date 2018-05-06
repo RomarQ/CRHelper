@@ -1,4 +1,4 @@
-local MAJOR, MINOR = "LibPositionIndicator", 3
+local MAJOR, MINOR = "LibPositionIndicator", 1
 local lib, oldminor = LibStub:NewLibrary(MAJOR, MINOR)
 if not lib then return end	--the same or newer version of this lib is already loaded into memory
 

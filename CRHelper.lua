@@ -110,6 +110,8 @@ CRHelper = {
 
 LUNIT = LibStub:GetLibrary("LibUnits")
 LibPI = LibStub:GetLibrary("LibPositionIndicator")
+LibA  = LibStub:GetLibrary("LibCSA")
+local CSA = CENTER_SCREEN_ANNOUNCE
 
 function CRHelper.OnAddOnLoaded(event, addonName)
 	-- The event fires each time *any* addon loads - but we only care about when our own addon loads.
@@ -234,6 +236,35 @@ function CRHelper.PlayerActivated( eventCode, initial )
 	end
 end
 
+function CRHelper.test()
+	-- LibA:CreateCountdown(5000, SOUNDS.SKILL_LINE_ADDED, nil, "dsadjadasddop", "sadadadad", nil, nil)
+	str = { "ABC |c98FB98 Portal UP |r CBA" , "123445" , "gfsdgdgdgdfgfdg" , "56fghgrfhjgfhfg" ,"sadsafsdfssdf", "AdsadsddasdsaPordsdsadtal UP dadBA" }
+	for k , v in pairs(str) do
+		local messageParams = CSA:CreateMessageParams(CSA_CATEGORY_MAJOR_TEXT, SOUNDS.SKILL_LINE_ADDED)
+		local messageParams2 = CSA:CreateMessageParams(CSA_CATEGORY_RAID_COMPLETE_TEXT, SOUNDS.SKILL_LINE_ADDED)
+		--messageParams:SetLifespanMS(5000)
+		d(v)
+		messageParams:SetText(v)
+		--messageParams:SetIconData(endIcon)
+		--messageParams:SetCSAType(CENTER_SCREEN_ANNOUNCE_TYPE_COUNTDOWN)
+		--messageParams:SetSetupCallback(setupCallback)
+		--messageParams:SetCountdownCallback(countdownCallback)
+		CSA:AddMessageWithParams(messageParams)
+
+		_G["CRH_OnScreen_L_OrbsSpawn"]:SetText( "|ce2530b Orbs are UP! |r" )
+		_G["CRH_OnScreen_L_OrbsSpawn"]:SetHidden(false)
+		PlaySound(SOUNDS.SKILL_LINE_ADDED)
+
+		zo_callLater(function() _G["CRH_OnScreen_L_OrbsSpawn"]:SetHidden(true) end , 5000)
+
+		_G["CRH_OnScreen_L_PortalSpawn"]:SetText( "|c98FB98 Portal UP |r - Group " .. CRHelper.currentPortalGroup )
+		_G["CRH_OnScreen_L_PortalSpawn"]:SetHidden(false)
+
+		zo_callLater(function() _G["CRH_OnScreen_L_PortalSpawn"]:SetHidden(true) end , 5000)
+
+	end
+end
+
 -------------------
 -- Create Labels for notifications
 -------------------
@@ -246,8 +277,8 @@ function CRHelper.StartOnScreenNotifications()
 	onScreen.backdrop = CRHelper.UI:Backdrop( "CRH_OnScreen_BG",		onScreen,		"inherit",		{CENTER,CENTER,0,0},	{0,0,0,0.7}, {0,0,0,1}, nil, true)
 	
 	onScreen.label_PortalSpawn = CRHelper.UI:Label(	"CRH_OnScreen_L_PortalSpawn" , onScreen , "inherit", {CENTER,CENTER,0,0} , "$(CRH_MEDIUM_FONT)|$(KB_36)|soft-shadow-thin" , nil , { 1 , 1 } , nil , true )
-	onScreen.label_CrushingDarkness = CRHelper.UI:Label(	"CRH_OnScreen_L_CrushingDarkness" , onScreen , "inherit", {CENTER,CENTER,0,0} , "$(CRH_MEDIUM_FONT)|$(KB_36)|soft-shadow-thin" , nil , { 1 , 1 } , nil , true )
-	onScreen.label_OrbsSpawn = CRHelper.UI:Label(	"CRH_OnScreen_L_OrbsSpawn" , onScreen , "inherit", {CENTER,CENTER,0,0} , "$(CRH_MEDIUM_FONT)|$(KB_36)|soft-shadow-thin" , nil , { 1 , 1 } , nil , true )
+	onScreen.label_CrushingDarkness = CRHelper.UI:Label( "CRH_OnScreen_L_CrushingDarkness" , onScreen , "inherit", {CENTER,CENTER,0,100} , "$(CRH_MEDIUM_FONT)|$(KB_36)|soft-shadow-thin" , nil , { 1 , 1 } , nil , true )
+	onScreen.label_OrbsSpawn = CRHelper.UI:Label( "CRH_OnScreen_L_OrbsSpawn" , onScreen , "inherit", {CENTER,CENTER,0,50} , "$(CRH_MEDIUM_FONT)|$(KB_36)|soft-shadow-thin" , nil , { 1 , 1 } , nil , true )
 	
 	onScreen:SetDrawTier(DT_HIGH)
 	onScreen.backdrop:SetEdgeTexture("",16,4,4)
@@ -283,7 +314,7 @@ function CRHelper.combatTip( eventCode , activeCombatTipId )
 	
 	elseif ( CRHelper.CrushingDarknessTipId == activeCombatTipId and CRHelper.savedVariables.trackCrushingDarkness ) then
 
-		_G["CRH_OnScreen_L_CrushingDarkness"]:SetText( "|c442584 Beam is on you, move out of the group! |r" )
+		_G["CRH_OnScreen_L_CrushingDarkness"]:SetText( "|c19a35e Beam is on you, move out of the group! |r" )
 		_G["CRH_OnScreen_L_CrushingDarkness"]:SetHidden(false)
 
 		zo_callLater(function() _G["CRH_OnScreen_L_CrushingDarkness"]:SetHidden(true) end , 5000)
@@ -321,9 +352,9 @@ function CRHelper.OrbSpawn(eventCode, result, isError, abilityName, abilityGraph
 
 	if ( not CRHelper.savedVariables.trackOrbSpawn ) then return end
 
-	if ( result == ACTION_RESULT_EFFECT_FADED ) then
+	if ( result == ACTION_RESULT_EFFECT_GAINED ) then
 		
-		_G["CRH_OnScreen_L_OrbsSpawn"]:SetText( "|ce2530b Orbs are UP! |r" )
+		_G["CRH_OnScreen_L_OrbsSpawn"]:SetText( "|cffd700 Orbs are UP! |r" )
 		_G["CRH_OnScreen_L_OrbsSpawn"]:SetHidden(false)
 		PlaySound(SOUNDS.SKILL_LINE_ADDED)
 
