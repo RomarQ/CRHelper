@@ -110,7 +110,6 @@ CRHelper = {
 
 LUNIT = LibStub:GetLibrary("LibUnits")
 LibPI = LibStub:GetLibrary("LibPositionIndicator")
-LibA  = LibStub:GetLibrary("LibCSA")
 local CSA = CENTER_SCREEN_ANNOUNCE
 
 function CRHelper.OnAddOnLoaded(event, addonName)

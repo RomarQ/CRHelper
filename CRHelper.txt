@@ -4,7 +4,6 @@
 ## SavedVariables: CRHelperSavedVariables
 ## OptionalDependsOn: LibAddonMenu-2.0
 
-libs/LibCSA/LibCSA.lua
 libs/LibStub/LibStub.lua
 libs/LibUnits/LibUnits.lua
 libs/LibPositionIndicator/LibPositionIndicator.lua
