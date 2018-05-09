@@ -1,10 +1,10 @@
 CRHelper = {
 	name = "CRHelper",
 	version	= "1",
-	varVersion = 1,
+	varVersion = 2,
 	trialZoneId = 1051,
 	UI = WINDOW_MANAGER:CreateTopLevelWindow("CRHelperUI"),
-	
+
 	defaultSettings = {
 
 		trackRoaringFlare = true,
@@ -16,8 +16,8 @@ CRHelper = {
 		trackOrbSpawn = true,
 
 		positionIndicatorEnabled = true,
-		positionIndicatorTexture = 1,
-		positionIndicatorColor = { 1, 1, 1, 1 },
+		positionIndicatorTexture = 2,
+		positionIndicatorColor = { 1, 0, 0, 1 },
 		positionIndicatorAlpha = 1,
 		positionIndicatorScale = 1.20
 
@@ -56,7 +56,7 @@ CRHelper = {
 
 		fireUnitTag = "player",
 	----- /ROARING FLARE (FIRE) -----
-	
+
 
 	----- Hoarfrost (FROST) -----
 
@@ -65,7 +65,7 @@ CRHelper = {
 		hoarfrostDuration = 10, -- how many seconds until synergy available
 		hoarfrostMessage = "|c00FFFF<<a:1>>|r: |c1E90FF<<2>>|r", -- name: <<1>> countdown: <<2>>
 		hoarfrostSynergyMessage = "|c1E90FF<<a:1>>|r DROPS FROST!", -- name: <<1>>
-		
+
 		frostStarted = false,
 		frostEffectGained = false,
 		frostTargetName = "", -- Hoarfrost target name
@@ -128,7 +128,7 @@ function CRHelper.Init()
 
 	-- Create Indicator control to make it accessible in menu
 	LibPI:CreateTexture()
-	
+
 	-- Builds a Settings menu on addon settings tab
 	CRHelper:buildMenu(CRHelper.savedVariables)
 
@@ -188,7 +188,7 @@ function CRHelper.PlayerActivated( eventCode, initial )
 			-- Register for when portal closes
 			EVENT_MANAGER:RegisterForEvent("portalEnd", EVENT_COMBAT_EVENT, CRHelper.PortalPhaseEnd )
 			EVENT_MANAGER:AddFilterForEvent("portalEnd", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, CRHelper.PortalEnd )
-			
+
 			EVENT_MANAGER:RegisterForEvent("inCombat", EVENT_PLAYER_COMBAT_STATE, CRHelper.PlayerCombatState )
 
 			-- Register for any combat Tip
@@ -197,13 +197,13 @@ function CRHelper.PlayerActivated( eventCode, initial )
 		end
 	else
 		if ( CRHelper.active ) then
-			
+
 			d("Outside Cloudrest, CRHelper is now disabled!")
 
 			CRHelper.active = false
 			CRHelper.StopMonitoringFight()
 			LibPI:EndUpdate()
-			
+
 			-- UnRegister to all subscribed Events
 
 			EVENT_MANAGER:UnregisterForEvent("CloudrestWeaponSwap", EVENT_ACTIVE_WEAPON_PAIR_CHANGED)
@@ -224,7 +224,7 @@ function CRHelper.PlayerActivated( eventCode, initial )
 				EVENT_MANAGER:UnregisterForEvent("VoltaicCurrent" .. i, EVENT_COMBAT_EVENT)
 			end
 
-			-- UnRegister all subscribed VoltaicOverload events 
+			-- UnRegister all subscribed VoltaicOverload events
 			for i, id in ipairs(CRHelper.voltaicOverloadIds) do
 				EVENT_MANAGER:UnregisterForEvent("VoltaicOverload" .. i, EVENT_EFFECT_CHANGED)
 			end
@@ -274,11 +274,11 @@ function CRHelper.StartOnScreenNotifications()
 	CRHelper.UI.fragment = ZO_HUDFadeSceneFragment:New(CRHelperUI)
 	local onScreen = CRHelper.UI:Control( "CRH_OnScreen" , CRHelperUI , {800,32*1.5*7} , {CENTER,CENTER,0,-200} , false )
 	onScreen.backdrop = CRHelper.UI:Backdrop( "CRH_OnScreen_BG",		onScreen,		"inherit",		{CENTER,CENTER,0,0},	{0,0,0,0.7}, {0,0,0,1}, nil, true)
-	
+
 	onScreen.label_PortalSpawn = CRHelper.UI:Label(	"CRH_OnScreen_L_PortalSpawn" , onScreen , "inherit", {CENTER,CENTER,0,0} , "$(CRH_MEDIUM_FONT)|$(KB_36)|soft-shadow-thin" , nil , { 1 , 1 } , nil , true )
 	onScreen.label_CrushingDarkness = CRHelper.UI:Label( "CRH_OnScreen_L_CrushingDarkness" , onScreen , "inherit", {CENTER,CENTER,0,100} , "$(CRH_MEDIUM_FONT)|$(KB_36)|soft-shadow-thin" , nil , { 1 , 1 } , nil , true )
 	onScreen.label_OrbsSpawn = CRHelper.UI:Label( "CRH_OnScreen_L_OrbsSpawn" , onScreen , "inherit", {CENTER,CENTER,0,50} , "$(CRH_MEDIUM_FONT)|$(KB_36)|soft-shadow-thin" , nil , { 1 , 1 } , nil , true )
-	
+
 	onScreen:SetDrawTier(DT_HIGH)
 	onScreen.backdrop:SetEdgeTexture("",16,4,4)
 
@@ -295,22 +295,22 @@ function CRHelper.combatTip( eventCode , activeCombatTipId )
 
 		CRHelper.stopPortalTimer = true
 		CRHelperFrame:SetHidden(true)
-		
+
 		_G["CRH_OnScreen_L_PortalSpawn"]:SetText( "|c98FB98 Portal UP |r - Group " .. CRHelper.currentPortalGroup )
 		_G["CRH_OnScreen_L_PortalSpawn"]:SetHidden(false)
 
 		zo_callLater(function() _G["CRH_OnScreen_L_PortalSpawn"]:SetHidden(true) end , 5000)
-		
+
 		d("Portal Group: " .. CRHelper.currentPortalGroup)
-	
-		if ( CRHelper.currentPortalGroup == 1 ) then 
+
+		if ( CRHelper.currentPortalGroup == 1 ) then
 			CRHelper.currentPortalGroup = 2
 		elseif ( CRHelper.currentPortalGroup == 2 ) then
 			CRHelper.currentPortalGroup = 1
 		end
 
 		return
-	
+
 	elseif ( CRHelper.CrushingDarknessTipId == activeCombatTipId and CRHelper.savedVariables.trackCrushingDarkness ) then
 
 		_G["CRH_OnScreen_L_CrushingDarkness"]:SetText( "|c19a35e Beam is on you, move out of the group! |r" )
@@ -352,7 +352,7 @@ function CRHelper.OrbSpawn(eventCode, result, isError, abilityName, abilityGraph
 	if ( not CRHelper.savedVariables.trackOrbSpawn ) then return end
 
 	if ( result == ACTION_RESULT_EFFECT_GAINED ) then
-		
+
 		_G["CRH_OnScreen_L_OrbsSpawn"]:SetText( "|cffd700 Orbs are UP! |r" )
 		_G["CRH_OnScreen_L_OrbsSpawn"]:SetHidden(false)
 		PlaySound(SOUNDS.SKILL_LINE_ADDED)
@@ -372,7 +372,7 @@ function CRHelper.PortalCoolDownStart(eventCode, result, isError, abilityName, a
 	if ( not CRHelper.savedVariables.trackPortalPhase ) then return end
 
 	if ( result == ACTION_RESULT_EFFECT_FADED ) then
-		
+
 		CRHelper.portalTimer = 45
 		CRHelper.stopPortalTimer = false
 		CRHelperFrame:SetHidden(false)
@@ -389,7 +389,7 @@ function CRHelper.startSRealmCoolDown(eventCode, result, isError, abilityName, a
 	if ( not CRHelper.savedVariables.trackPortalTimer ) then return end
 
 	if ( result == ACTION_RESULT_EFFECT_GAINED ) then
-		
+
 		CRHelper.stopPortalTimer = true
 		CRHelperFrame:SetHidden(true)
 
@@ -408,7 +408,7 @@ function CRHelper.ResetPortalTimer(eventCode, result, isError, abilityName, abil
 end
 
 function CRHelper.PortalPhaseEnd(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
-	-- Will fix interrupt message of shadow realm boss from displaying after portal closes 
+	-- Will fix interrupt message of shadow realm boss from displaying after portal closes
 	CRInterrupt:SetHidden(true)
 end
 
@@ -422,7 +422,7 @@ function CRHelper.PortalTimerUpdate()
 
 	CRHelper.portalTimer = CRHelper.portalTimer - 1
 	CRHelperFrame_Timer:SetText(string.format(" Portal in : |c19db1c %d |r", CRHelper.portalTimer ))
-	
+
 	EVENT_MANAGER:UnregisterForUpdate("PortalTimer")
 	EVENT_MANAGER:RegisterForUpdate("PortalTimer", 1000, CRHelper.PortalTimerUpdate )
 
@@ -435,7 +435,7 @@ function CRHelper:RegisterRoaringFlare()
 
 	EVENT_MANAGER:RegisterForEvent("RoaringFlare", EVENT_COMBAT_EVENT, self.RoaringFlare)
 	EVENT_MANAGER:AddFilterForEvent("RoaringFlare", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, self.roaringFlareId)
-	
+
 	-- Starts a Position Indicator that will allow everyone to know where the player is.
 	LibPI:HandleUpdate()
 
@@ -463,7 +463,7 @@ function CRHelper.RoaringFlare(eventCode, result, isError, abilityName, abilityG
 		PlaySound(SOUNDS.DUEL_START)
 
 	elseif (result == ACTION_RESULT_EFFECT_FADED) then
-	
+
 		CRHelper.fireStarted = false
 		CRHelper.FireTimerStopAndHide()
 
@@ -549,7 +549,7 @@ function CRHelper.HoarfrostSynergy(eventCode, result, isError, abilityName, abil
 
 		CRHelper.frostSynergy = false
 		CRHelper.FrostControlHide()
-	
+
 	end
 
 end
@@ -598,12 +598,12 @@ function CRHelper:RegisterVoltaicOverload()
 end
 
 function CRHelper.VoltaicCurrent(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
-	
+
 	if (not CRHelper.savedVariables.trackVoltaicOverload) then return end
 
 	-- If it's not on yourself, then just ignore it
 	if (targetType ~= COMBAT_UNIT_TYPE_PLAYER) then return end
-	
+
 	if (result == ACTION_RESULT_EFFECT_GAINED) then
 		CRHelper.ShockControlShow("SHOCK INC")
 		PlaySound(SOUNDS.DUEL_START)
@@ -729,10 +729,10 @@ end
 function CRHelper.FadeOutControl(control, duration)
 
     local animation, timeline = CreateSimpleAnimation(ANIMATION_ALPHA, control)
- 
+
     animation:SetAlphaValues(control:GetAlpha(), 0)
     animation:SetDuration(duration or 1000)
- 
+
     timeline:SetPlaybackType(ANIMATION_PLAYBACK_ONE_SHOT)
 	timeline:SetHandler('OnStop', function()
         control:SetHidden(true)
@@ -780,7 +780,7 @@ function CRHelper:RestorePosition()
 
 	local fireLeft = self.savedVariables.fireLeft
 	local fireTop = self.savedVariables.fireTop
-	
+
 	local frostLeft = self.savedVariables.frostLeft
 	local frostTop = self.savedVariables.frostTop
 
@@ -789,7 +789,7 @@ function CRHelper:RestorePosition()
 
 	local beamLeft = self.savedVariables.beamLeft
 	local beamTop = self.savedVariables.beamTop
-	
+
 	local frameLeft = self.savedVariables.frameLeft
 	local frameTop = self.savedVariables.frameTop
 
@@ -804,7 +804,7 @@ function CRHelper:RestorePosition()
 		CRFire:ClearAnchors()
 		CRFire:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, fireLeft, fireTop)
 	end
-	
+
 	if (frostLeft or frostTop) then
 		CRFrost:ClearAnchors()
 		CRFrost:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, frostLeft, frostTop)
@@ -819,7 +819,7 @@ function CRHelper:RestorePosition()
 		CRBeam:ClearAnchors()
 		CRBeam:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, beamLeft, beamTop)
 	end
-	
+
 	if ( frameLeft and frameTop ) then
 		CRHelperFrame:ClearAnchors();
 		CRHelperFrame:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, frameLeft, frameTop);
@@ -926,7 +926,7 @@ SLASH_COMMANDS["/cr"] = function ( command )
 		d('Font size has been set to small.')
 		CRHelper.savedVariables.fontSize = 'small'
 	end
-	
+
 	if ( command == 'medium') then
 		CRHelper:setFontSize('medium')
 		d('Font size has been set to medium.')
