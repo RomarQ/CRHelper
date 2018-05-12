@@ -74,7 +74,7 @@ function CRHelper.buildMenu( savedVars )
 		},
 		{
 			type = "checkbox",
-			name = "Laser Beam",
+			name = "Crushing Darkness",
 			tooltip = "Beam that comes from main boss head",
             default = settings.trackCrushingDarkness,
 			getFunc = function() return CRHelper.savedVariables.trackCrushingDarkness end,
@@ -94,11 +94,11 @@ function CRHelper.buildMenu( savedVars )
 		},
 		{
 			type = "checkbox",
-			name = "Portal Spawn/Timer",
-            default = settings.trackPortalTimer,
-			getFunc = function() return CRHelper.savedVariables.trackPortalTimer end,
+			name = "Portal Spawn",
+            default = settings.trackPortalSpawn,
+			getFunc = function() return CRHelper.savedVariables.trackPortalSpawn end,
 			setFunc = function(value)
-				CRHelper.savedVariables.trackPortalTimer = value or false
+				CRHelper.savedVariables.trackPortalSpawn = value or false
 			end
 		},
 		{
@@ -108,6 +108,37 @@ function CRHelper.buildMenu( savedVars )
 			getFunc = function() return CRHelper.savedVariables.trackOrbSpawn end,
 			setFunc = function(value)
 				CRHelper.savedVariables.trackOrbSpawn = value or false
+			end
+		},
+		{
+			type = "header",
+			name = "|c98FB98Timers|r"
+		},
+		{
+			type = "checkbox",
+			name = "Portal",
+            default = settings.trackPortalTimer,
+			getFunc = function() return CRHelper.savedVariables.trackPortalTimer end,
+			setFunc = function(value)
+				CRHelper.savedVariables.trackPortalTimer = value
+			end
+		},
+		{
+			type = "checkbox",
+			name = "Crushing Darkness",
+            default = settings.trackCrushingDarknessTimer,
+			getFunc = function() return CRHelper.savedVariables.trackCrushingDarknessTimer end,
+			setFunc = function(value)
+				CRHelper.savedVariables.trackCrushingDarknessTimer = value
+			end
+		},
+		{
+			type = "checkbox",
+			name = "Baneful Mark ( on execute )",
+            default = settings.trackBanefulMarkTimer,
+			getFunc = function() return CRHelper.savedVariables.trackBanefulMarkTimer end,
+			setFunc = function(value)
+				CRHelper.savedVariables.trackBanefulMarkTimer = value
 			end
 		},
 		{

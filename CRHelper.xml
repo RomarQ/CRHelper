@@ -2,18 +2,36 @@
   <Controls>
 
     <TopLevelControl name="CRHelperFrame" resizeToFitDescendents="true" mouseEnabled="true" movable="true" clampedToScreen="true" hidden="true">
-      <Dimensions x="200" y="42" />
-      <Anchor point="BOTTOM" relativeTo="GuiRoot" relativePoint="CENTER" offsetX="0" offsetY="-300" />
+      <Dimensions x="320" y="80" />
 
       <OnMoveStop>
         CRHelper.OnFrameMoveStop()
       </OnMoveStop>
 
       <Controls>
-          <Label name="$(parent)_Timer" font="ZoFontWindowTitle" color="CFDCBD" wrapMode="ELLIPSIS" verticalAlignment="CENTER" text=" Portal in : ">
-            <Anchor point="TOP" relativeTo="$(parent)" relativePoint="TOP" />
-          </Label>
+
+        <Backdrop name="$(parent)BG" centerColor="AA000000" edgeColor="55000000">
+					<AnchorFill />
+					<Edge edgeSize="2" />
+				</Backdrop>
+
+        <Label name="$(parent)_Timer" font="$(CRH_MEDIUM_FONT)|$(KB_18)|thick-outline" color="e5ffe5" wrapMode="ELLIPSE" verticalAlignment="BOTTOM" hidden="true">
+          <Anchor point="TOPLEFT" offsetX="5" offsetY="2" />
+          <Dimensions x="300" y="20" />
+        </Label>
+
+        <Label name="$(parent)_CrushingDarknessTimer" font="$(CRH_MEDIUM_FONT)|$(KB_18)|thick-outline" color="e5ffe5" wrapMode="ELLIPSE" verticalAlignment="BOTTOM" hidden="true">
+          <Anchor point="TOPLEFT" relativePoint="BOTTOMLEFT" relativeTo="$(parent)_Timer" offsetY="5" />
+          <Dimensions x="300" y="20" />
+        </Label>
+
+        <Label name="$(parent)_BanefulMarkTimer" font="$(CRH_MEDIUM_FONT)|$(KB_18)|thick-outline" color="e5ffe5" wrapMode="ELLIPSE" verticalAlignment="BOTTOM" hidden="true">
+          <Anchor point="TOPLEFT" relativePoint="BOTTOMLEFT" relativeTo="$(parent)_CrushingDarknessTimer" offsetY="5" />
+          <Dimensions x="300" y="20" />
+        </Label>
+        
       </Controls>
+
 		</TopLevelControl>
 
     <TopLevelControl name="CRShock"  mouseEnabled="true" movable="true" clampedToScreen="true" hidden="true">
@@ -61,23 +79,6 @@
 
       <OnMoveStop>
         CRHelper.OnInterruptMoveStop()
-      </OnMoveStop>
-
-      <Controls>
-        <Label name="$(parent)_Warning" height="50" width="200" font="$(BOLD_FONT)|$(KB_54)|soft-shadow-thick" inheritAlpha="true" color="FF1493" wrapMode="TRUNCATE" verticalAlignment="TOP" horizontalAlignment="LEFT" >
-
-          <Anchor relativePoint="TOP" relativeTo="$(parent)" point="TOP"/>
-
-        </Label>
-      </Controls>
-    </TopLevelControl>
-
-    <TopLevelControl name="CRBeam" mouseEnabled="true" movable="true" clampedToScreen="true" hidden="true">
-      <Dimensions x="200" y="50" />
-      <Anchor  point="BOTTOM" relativeTo="GuiRoot" relativePoint="CENTER" offsetX="50" offsetY="70" />
-
-      <OnMoveStop>
-        CRHelper.OnBeamMoveStop()
       </OnMoveStop>
 
       <Controls>

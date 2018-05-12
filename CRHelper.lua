@@ -11,9 +11,12 @@ CRHelper = {
 		trackHoarfrost = true,
 		trackVoltaicOverload = true,
 		trackCrushingDarkness = true,
+		trackCrushingDarknessTimer = true,
 		trackShadowSplashCast = true,
-		trackPortalPhase = true,
+		trackPortalSpawn = true,
+		trackPortalTimer = true,
 		trackOrbSpawn = true,
+		trackBanefulMarkTimer = true,
 
 		positionIndicatorEnabled = true,
 		positionIndicatorTexture = 2,
@@ -25,7 +28,7 @@ CRHelper = {
 
 	-- Core flags
 	active = false,	-- true when inside Cloudrest
-	monitoringFight = false, -- true when inCombat agains Z'Maja
+	monitoringFight = false, -- true when inCombat against Z'Maja
 
 	----- Portal Phase (Shadow Realm) -----
 
@@ -40,6 +43,7 @@ CRHelper = {
 		stopPortalTimer = true,
 		--
 		currentPortalGroup = 1,
+		PortalSpawn_CSA_Priority = 1,
 
 	----- /Portal Phase (Shadow Realm) -----
 
@@ -93,18 +97,30 @@ CRHelper = {
 
 
 
-	----- (Beam) -----
+	----- Crushing Darkness -----
 		beamId = 105161,
+		CrushingDarknessId = 105172,
 		CrushingDarknessTipId = 102,
-	----- /(Beam) -----
+		CrushingDarknessTimer = 0,
+		CrushingDarkness_CSA_Priority = 2,
+	----- /Crushing Darkness -----
 
 
 
 	----- Shadow Splash Cast (Interrupt) -----
-		shadowSplashCastId = 105123,
+		ShadowSplashCastId = 105123,
 	----- /Shadow Splash Cast (Interrupt) -----
 
-	OrbSpawnId = 105291,
+	----- Orbs Spawning -----
+		OrbSpawnId = 105291,
+		OrbSpawn_CSA_Priority = 2,
+	----- /Orbs Spawning -----
+
+	----- Baneful Mark on execute -----
+		BanefulMarkOnExecuteId = 108271,
+		BanefulMarkTimer = 0,
+	----- Baneful Mark on execute -----
+
 }
 
 
@@ -146,6 +162,14 @@ function CRHelper.PlayerActivated( eventCode, initial )
 
 			d("Inside Cloudrest, CRHelper is now enabled!")
 
+			if ( GetSetting(SETTING_TYPE_COMBAT, SETTING_TYPE_ACTIVE_COMBAT_TIP) ~= ACT_SETTING_ALWAYS ) then
+				SetSetting( SETTING_TYPE_COMBAT , SETTING_TYPE_ACTIVE_COMBAT_TIP , tostring(ACT_SETTING_ALWAYS))
+				ApplySettings()
+				RefreshSettings()
+			end
+
+			--SetSetting(*[SettingSystemType|#SettingSystemType]* _system_, *integer* _settingId_, *string* _value_, *[SetOptions|#SetOptions]* _setOptions_)
+
 			CRHelper.StartOnScreenNotifications()
 
 			CRHelper.active = true;
@@ -163,7 +187,7 @@ function CRHelper.PlayerActivated( eventCode, initial )
 
 			-- Main Boss Interrupt Mechanic
 			EVENT_MANAGER:RegisterForEvent("ShadowSplashCast", EVENT_COMBAT_EVENT, CRHelper.ShadowSplashCast)
-			EVENT_MANAGER:AddFilterForEvent("ShadowSplashCast", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, CRHelper.shadowSplashCastId)
+			EVENT_MANAGER:AddFilterForEvent("ShadowSplashCast", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, CRHelper.ShadowSplashCastId)
 
 			-- Register for when orbs spawn
 			EVENT_MANAGER:RegisterForEvent("OrbSpawn", EVENT_COMBAT_EVENT, CRHelper.OrbSpawn )
@@ -177,17 +201,20 @@ function CRHelper.PlayerActivated( eventCode, initial )
 			EVENT_MANAGER:RegisterForEvent("BossReset", EVENT_COMBAT_EVENT, CRHelper.ResetPortalTimer )
 			EVENT_MANAGER:AddFilterForEvent("BossReset", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, CRHelper.BossReset )
 
+			-- Register for Crushing Darkness
+			EVENT_MANAGER:RegisterForEvent("CrushingDarkness", EVENT_COMBAT_EVENT, CRHelper.CrushingDarkness )
+			EVENT_MANAGER:AddFilterForEvent("CrushingDarkness", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, CRHelper.CrushingDarknessId )
+
 			EVENT_MANAGER:RegisterForEvent("PortalCD", EVENT_COMBAT_EVENT, CRHelper.PortalCoolDownStart )
 			EVENT_MANAGER:AddFilterForEvent("PortalCD", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, CRHelper.PortalPhaseEndId )
-
-			-- Register for Portal Spawn
-			--EVENT_MANAGER:RegisterForEvent("portalSpawn", EVENT_COMBAT_EVENT, CRHelper.PortalPhase )
-			--EVENT_MANAGER:AddFilterForEvent("portalSpawn", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, CRHelper.PortalSpawn )
-
 
 			-- Register for when portal closes
 			EVENT_MANAGER:RegisterForEvent("portalEnd", EVENT_COMBAT_EVENT, CRHelper.PortalPhaseEnd )
 			EVENT_MANAGER:AddFilterForEvent("portalEnd", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, CRHelper.PortalEnd )
+
+			-- Register for Baneful Mark on execute
+			EVENT_MANAGER:RegisterForEvent("BanefulMarkOnExecute", EVENT_COMBAT_EVENT, CRHelper.BanefulMarkOnExecute )
+			EVENT_MANAGER:AddFilterForEvent("BanefulMarkOnExecute", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, CRHelper.BanefulMarkOnExecuteId )
 
 			EVENT_MANAGER:RegisterForEvent("inCombat", EVENT_PLAYER_COMBAT_STATE, CRHelper.PlayerCombatState )
 
@@ -210,10 +237,11 @@ function CRHelper.PlayerActivated( eventCode, initial )
 			EVENT_MANAGER:UnregisterForEvent("ShadowSplashCast", EVENT_COMBAT_EVENT)
 			--EVENT_MANAGER:UnregisterForEvent("StartSRealmCD", EVENT_COMBAT_EVENT)
 			EVENT_MANAGER:UnregisterForEvent("BossReset", EVENT_COMBAT_EVENT)
-			--EVENT_MANAGER:UnregisterForEvent("portalSpawn", EVENT_COMBAT_EVENT)
 			EVENT_MANAGER:UnregisterForEvent("RoaringFlare", EVENT_COMBAT_EVENT)
 			EVENT_MANAGER:UnregisterForEvent("HoarfrostSynergy", EVENT_COMBAT_EVENT)
 			EVENT_MANAGER:UnregisterForEvent("PortalCD", EVENT_COMBAT_EVENT)
+			EVENT_MANAGER:UnregisterForEvent("CrushingDarkness", EVENT_COMBAT_EVENT)
+			EVENT_MANAGER:UnregisterForEvent("BanefulMarkOnExecute", EVENT_COMBAT_EVENT)
 
 			EVENT_MANAGER:UnregisterForEvent("inCombat", EVENT_PLAYER_COMBAT_STATE )
 
@@ -235,33 +263,87 @@ function CRHelper.PlayerActivated( eventCode, initial )
 	end
 end
 
-function CRHelper.test()
-	-- LibA:CreateCountdown(5000, SOUNDS.SKILL_LINE_ADDED, nil, "dsadjadasddop", "sadadadad", nil, nil)
-	str = { "ABC |c98FB98 Portal UP |r CBA" , "123445" , "gfsdgdgdgdfgfdg" , "56fghgrfhjgfhfg" ,"sadsafsdfssdf", "AdsadsddasdsaPordsdsadtal UP dadBA" }
-	for k , v in pairs(str) do
-		local messageParams = CSA:CreateMessageParams(CSA_CATEGORY_MAJOR_TEXT, SOUNDS.SKILL_LINE_ADDED)
-		local messageParams2 = CSA:CreateMessageParams(CSA_CATEGORY_RAID_COMPLETE_TEXT, SOUNDS.SKILL_LINE_ADDED)
-		--messageParams:SetLifespanMS(5000)
-		d(v)
-		messageParams:SetText(v)
-		--messageParams:SetIconData(endIcon)
-		--messageParams:SetCSAType(CENTER_SCREEN_ANNOUNCE_TYPE_COUNTDOWN)
-		--messageParams:SetSetupCallback(setupCallback)
-		--messageParams:SetCountdownCallback(countdownCallback)
+---- testing cave
+local t = {}
+
+function CRHelper.test( v )
+
+	
+	--local messageParams = CSA:CreateMessageParams(CSA_CATEGORY_MAJOR_TEXT, SOUNDS.MESSAGE_BROADCAST)
+	--local messageParams = CSA:CreateMessageParams(CSA_CATEGORY_LARGE_TEXT, SOUNDS.ACHIEVEMENT_AWARDED)
+	--messageParams:SetText( "|c98FB98 Portal UP |r - Group " .. CRHelper.currentPortalGroup )
+    --messageParams:SetCSAType(CENTER_SCREEN_ANNOUNCE_TYPE_DISPLAY_ANNOUNCEMENT)
+	--messageParams:SetIconData("/esoui/art/buttons/large_rightarrow_up.dds")--, "EsoUI/Art/Achievements/achievements_iconBG.dds")
+	--messageParams:MarkSuppressIconFrame()
+	--CSA:AddMessageWithParams(messageParams)
+
+
+	zo_callLater(function()
+
+		local messageParams = CSA:CreateMessageParams(CSA_CATEGORY_SMALL_TEXT, SOUNDS.SKILL_LINE_ADDED)
+		messageParams:SetText( "|c98FB98 Portal UP |r - Group " .. CRHelper.currentPortalGroup )
+		messageParams:SetPriority(CRHelper.PortalSpawn_CSA_Priority)
+		messageParams:SetCSAType(CENTER_SCREEN_ANNOUNCE_TYPE_COLLECTIBLES_UPDATED)
 		CSA:AddMessageWithParams(messageParams)
+	
+		local messageParams2 = CSA:CreateMessageParams(CSA_CATEGORY_SMALL_TEXT, SOUNDS.SKILL_LINE_ADDED)
+		messageParams2:SetText( "|cff5d00 Crushing Darkness is on you! |r")
+		messageParams2:SetPriority(CRHelper.CrushingDarkness_CSA_Priority)
+		CSA:AddMessageWithParams(messageParams2)
+	
+		local messageParams3 = CSA:CreateMessageParams(CSA_CATEGORY_SMALL_TEXT, SOUNDS.SKILL_LINE_ADDED)
+		messageParams3:SetText( "|cffd700 Orbs are UP! |r" )
+		messageParams3:SetPriority(CRHelper.OrbSpawn_CSA_Priority)
+		CSA:AddMessageWithParams(messageParams3)
+	
+	end , 1000)
 
-		_G["CRH_OnScreen_L_OrbsSpawn"]:SetText( "|ce2530b Orbs are UP! |r" )
-		_G["CRH_OnScreen_L_OrbsSpawn"]:SetHidden(false)
-		PlaySound(SOUNDS.SKILL_LINE_ADDED)
 
-		zo_callLater(function() _G["CRH_OnScreen_L_OrbsSpawn"]:SetHidden(true) end , 5000)
-
-		_G["CRH_OnScreen_L_PortalSpawn"]:SetText( "|c98FB98 Portal UP |r - Group " .. CRHelper.currentPortalGroup )
-		_G["CRH_OnScreen_L_PortalSpawn"]:SetHidden(false)
-
-		zo_callLater(function() _G["CRH_OnScreen_L_PortalSpawn"]:SetHidden(true) end , 5000)
-
+	if ( v == 0 ) then
+		CRHelper.portalTimer = 45
+		CRHelper.CrushingDarknessTimer = 28
+		CRHelper.BanefulMarkTimer = 22
+		CRHelperFrame:SetHidden(false)
+		CRHelperFrame_Timer:SetHidden(false)
+		CRHelperFrame_CrushingDarknessTimer:SetHidden(false)
+		CRHelperFrame_BanefulMarkTimer:SetHidden(false)
+		CRHelper.TimerUpdate()
+	elseif ( v == 1 ) then
+		CRHelper.CrushingDarknessTimer = 28
+		CRHelperFrame:SetHidden(false)
+		CRHelperFrame_CrushingDarknessTimer:SetHidden(false)
+		CRHelper.TimerUpdate()
+	elseif ( v == 2 ) then
+		CRHelper.portalTimer = 45
+		CRHelperFrame:SetHidden(false)
+		CRHelper.TimerUpdate()
+		CRHelperFrame_Timer:SetHidden(false)
+	elseif ( v == 3 ) then
+		CRHelper.BanefulMarkTimer = 22
+		CRHelperFrame:SetHidden(false)
+		CRHelper.TimerUpdate()
+		CRHelperFrame_BanefulMarkTimer:SetHidden(false)
 	end
+
+	if ( CRHelper.savedVariables.positionIndicatorEnabled ) then
+		LibPI:PostitionIndicatorShow()
+	end
+
+	--[[]
+	for i=1 , 9 , 1 do
+		t[i] = {}
+		for j=1 , 100 , 1 do
+			if(t[i][j] == nil) then
+				if (GetSetting(i, j) == nil ) then return end
+				t[i][j] = GetSetting(i, j)
+			elseif ( t[i][j] ~= GetSetting(i, j) and GetSetting(i, j) ~= nil ) then
+				if (t[i][j] == nil ) then return end
+				d(i .. " - " .. j .. " -> " .. t[i][j] )
+				t[i][j] = GetSetting(i, j)
+			end
+		end
+	end
+	]]
 end
 
 -------------------
@@ -273,10 +355,11 @@ function CRHelper.StartOnScreenNotifications()
 	--Reference the CRHelperUI layer as a scene fragment
 	CRHelper.UI.fragment = ZO_HUDFadeSceneFragment:New(CRHelperUI)
 	local onScreen = CRHelper.UI:Control( "CRH_OnScreen" , CRHelperUI , {800,32*1.5*7} , {CENTER,CENTER,0,-200} , false )
-	onScreen.backdrop = CRHelper.UI:Backdrop( "CRH_OnScreen_BG",		onScreen,		"inherit",		{CENTER,CENTER,0,0},	{0,0,0,0.7}, {0,0,0,1}, nil, true)
+	onScreen.backdrop = CRHelper.UI:Backdrop( "CRH_OnScreen_BG", onScreen, "inherit", {CENTER,CENTER,0,0}, {0,0,0,0.7}, {0,0,0,1}, nil, true)
 
 	onScreen.label_PortalSpawn = CRHelper.UI:Label(	"CRH_OnScreen_L_PortalSpawn" , onScreen , "inherit", {CENTER,CENTER,0,0} , "$(CRH_MEDIUM_FONT)|$(KB_36)|soft-shadow-thin" , nil , { 1 , 1 } , nil , true )
 	onScreen.label_CrushingDarkness = CRHelper.UI:Label( "CRH_OnScreen_L_CrushingDarkness" , onScreen , "inherit", {CENTER,CENTER,0,100} , "$(CRH_MEDIUM_FONT)|$(KB_36)|soft-shadow-thin" , nil , { 1 , 1 } , nil , true )
+
 	onScreen.label_OrbsSpawn = CRHelper.UI:Label( "CRH_OnScreen_L_OrbsSpawn" , onScreen , "inherit", {CENTER,CENTER,0,50} , "$(CRH_MEDIUM_FONT)|$(KB_36)|soft-shadow-thin" , nil , { 1 , 1 } , nil , true )
 
 	onScreen:SetDrawTier(DT_HIGH)
@@ -291,17 +374,15 @@ function CRHelper.combatTip( eventCode , activeCombatTipId )
 
 	local name, tipText, _icon = GetActiveCombatTipInfo(activeCombatTipId)
 
-	if( CRHelper.PortalSpawnTipId == activeCombatTipId and CRHelper.savedVariables.trackPortalPhase ) then
+	if( CRHelper.PortalSpawnTipId == activeCombatTipId and CRHelper.savedVariables.trackPortalSpawn ) then
 
 		CRHelper.stopPortalTimer = true
 		CRHelperFrame:SetHidden(true)
 
-		_G["CRH_OnScreen_L_PortalSpawn"]:SetText( "|c98FB98 Portal UP |r - Group " .. CRHelper.currentPortalGroup )
-		_G["CRH_OnScreen_L_PortalSpawn"]:SetHidden(false)
-
-		zo_callLater(function() _G["CRH_OnScreen_L_PortalSpawn"]:SetHidden(true) end , 5000)
-
-		d("Portal Group: " .. CRHelper.currentPortalGroup)
+		local messageParams = CSA:CreateMessageParams(CSA_CATEGORY_SMALL_TEXT, SOUNDS.SKILL_LINE_ADDED)
+		messageParams:SetText( "|c98FB98 Portal UP |r - Group " .. CRHelper.currentPortalGroup )
+		messageParams:SetPriority(CRHelper.PortalSpawn_CSA_Priority)
+		CSA:AddMessageWithParams(messageParams)
 
 		if ( CRHelper.currentPortalGroup == 1 ) then
 			CRHelper.currentPortalGroup = 2
@@ -312,11 +393,11 @@ function CRHelper.combatTip( eventCode , activeCombatTipId )
 		return
 
 	elseif ( CRHelper.CrushingDarknessTipId == activeCombatTipId and CRHelper.savedVariables.trackCrushingDarkness ) then
-
-		_G["CRH_OnScreen_L_CrushingDarkness"]:SetText( "|c19a35e Beam is on you, move out of the group! |r" )
-		_G["CRH_OnScreen_L_CrushingDarkness"]:SetHidden(false)
-
-		zo_callLater(function() _G["CRH_OnScreen_L_CrushingDarkness"]:SetHidden(true) end , 5000)
+ 
+		local messageParams = CSA:CreateMessageParams(CSA_CATEGORY_SMALL_TEXT, SOUNDS.SKILL_LINE_ADDED)
+		messageParams:SetText( "|cff5d00 Crushing Darkness is on you! |r")
+		messageParams:SetPriority(CRHelper.CrushingDarkness_CSA_Priority)
+		CSA:AddMessageWithParams(messageParams)
 
 	end
 
@@ -333,14 +414,47 @@ end
 
 function CRHelper.StartMonitoringFight( )
 	CRHelper.monitoringFight = true
+	CRHelper.stopTimer = false
 end
 
 function CRHelper.StopMonitoringFight( )
 	CRHelper.monitoringFight = false
 
-	CRHelper.portalTimer = 0
 	CRHelperFrame:SetHidden(true)
-	CRHelper.stopPortalTimer = true
+	CRHelper.stopTimer = true
+
+end
+
+-------------------
+-- Starts a Cooldown timer for Crushing Darkness
+-------------------
+function CRHelper.CrushingDarkness(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
+	
+	if ( not CRHelper.savedVariables.trackCrushingDarknessTimer ) then return end
+
+	if ( result == ACTION_RESULT_EFFECT_GAINED ) then
+		
+		CRHelper.CrushingDarknessTimer = 28
+		CRHelperFrame:SetHidden(false)
+		CRHelperFrame_CrushingDarknessTimer:SetHidden(false)
+		CRHelper.TimerUpdate()
+
+	end
+
+end
+
+function CRHelper.BanefulMarkOnExecute(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
+	
+	if ( not CRHelper.savedVariables.trackBanefulMarkTimer ) then return end
+
+	if ( result == ACTION_RESULT_EFFECT_GAINED ) then
+		
+		CRHelper.BanefulMarkTimer = 22
+		CRHelperFrame:SetHidden(false)
+		CRHelperFrame_BanefulMarkTimer:SetHidden(false)
+		CRHelper.TimerUpdate()
+
+	end
 
 end
 
@@ -353,11 +467,10 @@ function CRHelper.OrbSpawn(eventCode, result, isError, abilityName, abilityGraph
 
 	if ( result == ACTION_RESULT_EFFECT_GAINED ) then
 
-		_G["CRH_OnScreen_L_OrbsSpawn"]:SetText( "|cffd700 Orbs are UP! |r" )
-		_G["CRH_OnScreen_L_OrbsSpawn"]:SetHidden(false)
-		PlaySound(SOUNDS.SKILL_LINE_ADDED)
-
-		zo_callLater(function() _G["CRH_OnScreen_L_OrbsSpawn"]:SetHidden(true) end , 5000)
+		local messageParams = CSA:CreateMessageParams(CSA_CATEGORY_SMALL_TEXT, SOUNDS.SKILL_LINE_ADDED)
+		messageParams:SetText( "|cffd700 Orbs are UP! |r" )
+		messageParams:SetPriority(CRHelper.OrbSpawn_CSA_Priority)
+		CSA:AddMessageWithParams(messageParams)
 
 	end
 
@@ -369,14 +482,15 @@ end
 -------------------
 function CRHelper.PortalCoolDownStart(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
 
-	if ( not CRHelper.savedVariables.trackPortalPhase ) then return end
+	if ( not CRHelper.savedVariables.trackPortalTimer ) then return end
 
 	if ( result == ACTION_RESULT_EFFECT_FADED ) then
 
 		CRHelper.portalTimer = 45
 		CRHelper.stopPortalTimer = false
 		CRHelperFrame:SetHidden(false)
-		CRHelper.PortalTimerUpdate()
+		CRHelperFrame_Timer:SetHidden(false)
+		CRHelper.TimerUpdate()
 
 	end
 
@@ -412,19 +526,58 @@ function CRHelper.PortalPhaseEnd(eventCode, result, isError, abilityName, abilit
 	CRInterrupt:SetHidden(true)
 end
 
--- Timer for portal spawn
-function CRHelper.PortalTimerUpdate()
+-- Timer for portal spawn and crushing darkness
+function CRHelper.TimerUpdate()
 
-	if ( CRHelper.stopPortalTimer or CRHelper.portalTimer == 0 ) then
-		EVENT_MANAGER:UnregisterForUpdate("PortalTimer")
+	if ( CRHelper.StopTimer ) then
+		EVENT_MANAGER:UnregisterForUpdate("Timer")
+		CRHelperFrame:SetHidden(true)
 		return
 	end
 
-	CRHelper.portalTimer = CRHelper.portalTimer - 1
-	CRHelperFrame_Timer:SetText(string.format(" Portal in : |c19db1c %d |r", CRHelper.portalTimer ))
+	if ( CRHelper.savedVariables.trackPortalTimer ) then
 
-	EVENT_MANAGER:UnregisterForUpdate("PortalTimer")
-	EVENT_MANAGER:RegisterForUpdate("PortalTimer", 1000, CRHelper.PortalTimerUpdate )
+		CRHelper.portalTimer = CRHelper.portalTimer - 1
+		if ( CRHelper.portalTimer >= 0 ) then
+			CRHelperFrame_Timer:SetText(string.format("Portal ( |c98FB98Group " .. CRHelper.currentPortalGroup .. "|r )|t32:32:esoui/art/buttons/large_rightarrow_up.dds|t|c19db1c%d|r", CRHelper.portalTimer ))
+		elseif( CRHelper.portalTimer < 0 and CRHelper.portalTimer >= -20 ) then
+			CRHelperFrame_Timer:SetText("Portal ( |c98FB98Group " .. CRHelper.currentPortalGroup .. "|r )|t32:32:esoui/art/buttons/large_rightarrow_up.dds|t|cff4c4cAny Moment|r")
+		else
+			CRHelperFrame_Timer:SetHidden(true)
+		end
+	
+	end
+
+	if ( CRHelper.savedVariables.trackCrushingDarknessTimer ) then
+
+		CRHelper.CrushingDarknessTimer = CRHelper.CrushingDarknessTimer -1
+
+		if ( CRHelper.CrushingDarknessTimer >= 0 ) then
+			CRHelperFrame_CrushingDarknessTimer:SetText(string.format("Tether|t32:32:esoui/art/buttons/large_rightarrow_up.dds|t|c19db1c%d|r", CRHelper.CrushingDarknessTimer ))
+		elseif ( CRHelper.CrushingDarknessTimer < 0 and CRHelper.CrushingDarknessTimer >= -20 ) then
+			CRHelperFrame_CrushingDarknessTimer:SetText("Tether|t32:32:esoui/art/buttons/large_rightarrow_up.dds|t|cff4c4cAny Moment|r")
+		else
+			CRHelperFrame_CrushingDarknessTimer:SetHidden(true)
+		end
+
+	end
+
+	if ( CRHelper.savedVariables.trackBanefulMarkTimer ) then
+
+		CRHelper.BanefulMarkTimer = CRHelper.BanefulMarkTimer -1
+
+		if ( CRHelper.BanefulMarkTimer >= 0 ) then
+			CRHelperFrame_BanefulMarkTimer:SetText(string.format("Baneful Mark|t32:32:esoui/art/buttons/large_rightarrow_up.dds|t|c19db1c%d|r", CRHelper.BanefulMarkTimer ))
+		elseif ( CRHelper.BanefulMarkTimer < 0 and CRHelper.BanefulMarkTimer >= -20 ) then
+			CRHelperFrame_BanefulMarkTimer:SetText("Baneful Mark|t32:32:esoui/art/buttons/large_rightarrow_up.dds|t|cff4c4cAny Moment|r")
+		else
+			CRHelperFrame_BanefulMarkTimer:SetHidden(true)
+		end
+
+	end
+	
+	EVENT_MANAGER:UnregisterForUpdate("Timer")
+	EVENT_MANAGER:RegisterForUpdate("Timer", 1000, CRHelper.TimerUpdate )
 
 end
 
@@ -452,7 +605,7 @@ function CRHelper.RoaringFlare(eventCode, result, isError, abilityName, abilityG
 		CRHelper.fireTargetName = LUNIT:GetNameForUnitId(targetUnitId) -- get name of target
 		CRHelper.fireCount = CRHelper.roaringFlareDuration -- countdown
 
-		if (targetType ~= COMBAT_UNIT_TYPE_PLAYER) then
+		if ( targetType ~= COMBAT_UNIT_TYPE_PLAYER and CRHelper.savedVariables.positionIndicatorEnabled ) then
 			LibPI:PostitionIndicatorShow()
 		end
 
@@ -763,14 +916,14 @@ function CRHelper:OnInterruptMoveStop()
 	CRHelper.savedVariables.interruptTop = CRInterrupt:GetTop()
 end
 
-function CRHelper:OnBeamMoveStop()
-	CRHelper.savedVariables.beamLeft = CRBeam:GetLeft()
-	CRHelper.savedVariables.beamTop = CRBeam:GetTop()
-end
-
 function CRHelper:OnFrameMoveStop()
 	CRHelper.savedVariables.frameLeft = CRHelperFrame:GetLeft()
 	CRHelper.savedVariables.frameTop = CRHelperFrame:GetTop()
+end
+
+function CRHelper:OnLabelMove( label )
+	CRHelper.savedVariables[label .. "Top"] = _G[label]:GetLeft()
+	CRHelper.savedVariables[label .. "Top"] = _G[label]:GetTop()
 end
 
 -- Gets the saved window position and updates it
@@ -786,9 +939,6 @@ function CRHelper:RestorePosition()
 
 	local interruptLeft = self.savedVariables.interruptLeft
 	local interruptTop	= self.savedVariables.interruptTop
-
-	local beamLeft = self.savedVariables.beamLeft
-	local beamTop = self.savedVariables.beamTop
 
 	local frameLeft = self.savedVariables.frameLeft
 	local frameTop = self.savedVariables.frameTop
@@ -813,11 +963,6 @@ function CRHelper:RestorePosition()
 	if (interruptLeft and interruptTop) then
 		CRInterrupt:ClearAnchors()
 		CRInterrupt:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, interruptLeft, interruptTop)
-	end
-
-	if (beamLeft and beamTop) then
-		CRBeam:ClearAnchors()
-		CRBeam:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, beamLeft, beamTop)
 	end
 
 	if ( frameLeft and frameTop ) then
@@ -861,9 +1006,6 @@ function CRHelper:unlockUI()
 	CRInterrupt:SetHidden(false)
 	CRInterrupt_Warning:SetText("Interrupt the Hypnotard!")
 
-	CRBeam:SetHidden(false)
-	CRBeam_Warning:SetText( 'Beam is on you, move out of the group!' )
-
 	CRHelperFrame:SetHidden(false)
 
 end
@@ -877,9 +1019,6 @@ function CRHelper:lockUI()
 	CRInterrupt:SetHidden(true)
 	CRInterrupt_Warning:SetText("")
 
-	CRBeam:SetHidden(true)
-	CRBeam_Warning:SetText( '' )
-
 	CRHelperFrame:SetHidden(true)
 end
 
@@ -887,36 +1026,16 @@ end
 SLASH_COMMANDS["/cr"] = function ( command )
 
 	if ( command == 'unlock' ) then
+		
 		-- Show dummy text so user can move the window
-
-		CRHelper.FireControlShow("FIRE INC")
-		CRHelper.FrostControlShow("FROST INC")
-		CRHelper.ShockControlShow("SHOCK INC")
-
-		CRInterrupt:SetHidden(false)
-		CRInterrupt_Warning:SetText("Interrupt the Hypnotard!")
-
-		CRBeam:SetHidden(false)
-		CRBeam_Warning:SetText( 'Beam is on you, move out of the group!' )
-
-		CRHelperFrame:SetHidden(false)
+		CRHelper:unlockUI()
 
 		return
 	end
 
 	if ( command == 'lock' ) then
 
-		CRHelper.FireControlHide()
-		CRHelper.FrostControlHide()
-		CRHelper.ShockControlHide()
-
-		CRInterrupt:SetHidden(true)
- 		CRInterrupt_Warning:SetText("")
-
-		CRBeam:SetHidden(true)
-		CRBeam_Warning:SetText( '' )
-
-		CRHelperFrame:SetHidden(true)
+		CRHelper.lockUI()
 
 		return
 	end
@@ -949,8 +1068,6 @@ SLASH_COMMANDS["/cr"] = function ( command )
 		CRHelper.savedVariables.frostTop = nil
 		CRHelper.savedVariables.interruptLeft = nil
 		CRHelper.savedVariables.interruptTop = nil
-		CRHelper.savedVariables.beamLeft = nil
-		CRHelper.savedVariables.beamTop = nil
 		CRHelper.savedVariables.frameLeft = nil
 		CRHelper.savedVariables.frameTop = nil
 		return
