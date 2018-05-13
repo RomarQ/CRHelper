@@ -50,7 +50,19 @@ function CRHelper.buildMenu( savedVars )
 			getFunc = function() return CRHelper.savedVariables.trackRoaringFlare end,
 			setFunc = function(value)
 				CRHelper.savedVariables.trackRoaringFlare = value or false
-			end
+			end,
+			width = "half",
+		},
+		{
+			type = "colorpicker",
+			default = ZO_ColorDef:New(unpack(CRHelper.savedVariables.RoaringFlareColor)),
+			getFunc = function() return unpack(CRHelper.savedVariables.RoaringFlareColor) end,
+			setFunc = function(r, g, b)
+				SetSavedVars("RoaringFlareColor", {r, g, b})
+				CRFire_Label:SetColor(unpack(CRHelper.savedVariables.RoaringFlareColor))
+			end,
+			width = "half",
+			disabled = function() return not CRHelper.savedVariables.trackRoaringFlare end,
 		},
 		{
 			type = "checkbox",
@@ -60,7 +72,19 @@ function CRHelper.buildMenu( savedVars )
 			getFunc = function() return CRHelper.savedVariables.trackHoarfrost end,
 			setFunc = function(value)
 				CRHelper.savedVariables.trackHoarfrost = value or false
-			end
+			end,
+			width = 'half',
+		},
+		{
+			type = "colorpicker",
+			default = ZO_ColorDef:New(unpack(CRHelper.savedVariables.HoarfrostColor)),
+			getFunc = function() return unpack(CRHelper.savedVariables.HoarfrostColor) end,
+			setFunc = function(r, g, b)
+				SetSavedVars("HoarfrostColor", {r, g, b})
+				CRFrost_Label:SetColor(unpack(CRHelper.savedVariables.HoarfrostColor))
+			end,
+			width = "half",
+			disabled = function() return not CRHelper.savedVariables.trackHoarfrost end,
 		},
 		{
 			type = "checkbox",
@@ -70,7 +94,19 @@ function CRHelper.buildMenu( savedVars )
 			getFunc = function() return CRHelper.savedVariables.trackVoltaicOverload end,
 			setFunc = function(value)
 				CRHelper.savedVariables.trackVoltaicOverload = value or false
-			end
+			end,
+			width = "half",
+		},
+		{
+			type = "colorpicker",
+			default = ZO_ColorDef:New(unpack(CRHelper.savedVariables.VoltaicOverloadColor)),
+			getFunc = function() return unpack(CRHelper.savedVariables.VoltaicOverloadColor) end,
+			setFunc = function(r, g, b)
+				SetSavedVars("VoltaicOverloadColor", {r, g, b})
+				CRShock_Label:SetColor(unpack(CRHelper.savedVariables.VoltaicOverloadColor))
+			end,
+			width = "half",
+			disabled = function() return not CRHelper.savedVariables.trackVoltaicOverload end,
 		},
 		{
 			type = "checkbox",

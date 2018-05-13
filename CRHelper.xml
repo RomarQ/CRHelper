@@ -2,32 +2,27 @@
   <Controls>
 
     <TopLevelControl name="CRHelperFrame" resizeToFitDescendents="true" mouseEnabled="true" movable="true" clampedToScreen="true" hidden="true">
-      <Dimensions x="320" y="80" />
+      <Dimensions x="310" y="80" />
 
       <OnMoveStop>
         CRHelper.OnFrameMoveStop()
       </OnMoveStop>
 
       <Controls>
-
-        <Backdrop name="$(parent)BG" centerColor="AA000000" edgeColor="55000000">
-					<AnchorFill />
-					<Edge edgeSize="2" />
-				</Backdrop>
-
-        <Label name="$(parent)_Timer" font="$(CRH_MEDIUM_FONT)|$(KB_18)|thick-outline" color="e5ffe5" wrapMode="ELLIPSE" verticalAlignment="BOTTOM" hidden="true">
-          <Anchor point="TOPLEFT" offsetX="5" offsetY="2" />
-          <Dimensions x="300" y="20" />
+      
+        <Label name="$(parent)_PortalTimer" font="$(CRH_MEDIUM_FONT)|$(KB_18)|soft-shadow-thick" color="FFFFFF" wrapMode="ELLIPSE" verticalAlignment="BOTTOM" hidden="true">
+          <Anchor point="TOPLEFT" />
+          <Dimensions x="310" y="20" />
         </Label>
 
-        <Label name="$(parent)_CrushingDarknessTimer" font="$(CRH_MEDIUM_FONT)|$(KB_18)|thick-outline" color="e5ffe5" wrapMode="ELLIPSE" verticalAlignment="BOTTOM" hidden="true">
-          <Anchor point="TOPLEFT" relativePoint="BOTTOMLEFT" relativeTo="$(parent)_Timer" offsetY="5" />
-          <Dimensions x="300" y="20" />
+        <Label name="$(parent)_CrushingDarknessTimer" font="$(CRH_MEDIUM_FONT)|$(KB_18)|soft-shadow-thick" color="FFFFFF" wrapMode="ELLIPSE" verticalAlignment="BOTTOM" hidden="true">
+          <Anchor point="TOPLEFT" relativePoint="BOTTOMLEFT" relativeTo="$(parent)_PortalTimer" offsetY="5" />
+          <Dimensions x="310" y="20" />
         </Label>
 
-        <Label name="$(parent)_BanefulMarkTimer" font="$(CRH_MEDIUM_FONT)|$(KB_18)|thick-outline" color="e5ffe5" wrapMode="ELLIPSE" verticalAlignment="BOTTOM" hidden="true">
+        <Label name="$(parent)_BanefulMarkTimer" font="$(CRH_MEDIUM_FONT)|$(KB_18)|soft-shadow-thick" color="FFFFFF" wrapMode="ELLIPSE" verticalAlignment="BOTTOM" hidden="true">
           <Anchor point="TOPLEFT" relativePoint="BOTTOMLEFT" relativeTo="$(parent)_CrushingDarknessTimer" offsetY="5" />
-          <Dimensions x="300" y="20" />
+          <Dimensions x="310" y="20" />
         </Label>
         
       </Controls>
