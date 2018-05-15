@@ -33,9 +33,11 @@ CRHelper = {
 	},
 
 	-- Core flags
-	active = false,	-- true when inside Cloudrest
-	monitoringFight = false, -- true when inCombat against Z'Maja
+		active = false,	-- true when inside Cloudrest
+		monitoringFight = false, -- true when inCombat against Z'Maja
+		inExecute = false,
 
+		executeStartId = 107991,
 	----- Portal Phase (Shadow Realm) -----
 
 		Start_SRealm_CD = 105890,
@@ -233,6 +235,9 @@ function CRHelper.PlayerActivated( eventCode, initial )
 			-- Register for Baneful Mark on execute
 			EVENT_MANAGER:RegisterForEvent("BanefulMarkOnExecute", EVENT_COMBAT_EVENT, CRHelper.BanefulMarkOnExecute )
 			EVENT_MANAGER:AddFilterForEvent("BanefulMarkOnExecute", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, CRHelper.BanefulMarkOnExecuteId )
+			
+			EVENT_MANAGER:RegisterForEvent("inExecute", EVENT_COMBAT_EVENT, function() CRHelper.inExecute = true end )
+			EVENT_MANAGER:AddFilterForEvent("inExecute", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, CRHelper.executeStartId )
 
 			EVENT_MANAGER:RegisterForEvent("inCombat", EVENT_PLAYER_COMBAT_STATE, CRHelper.PlayerCombatState )
 
@@ -683,7 +688,7 @@ function CRHelper.RoaringFlare(eventCode, result, isError, abilityName, abilityG
 	if (result == ACTION_RESULT_BEGIN) then
 
 		-- second player gets fire (should only happen on execute)
-		if (CRHelper.fireStarted) then
+		if (CRHelper.inExecute) then
 			
 			CRHelper.fireTargetUnit2 = targetUnitId
 			CRHelper.FireControlShow(CRHelper.FormatRoaringFlareMessage())
