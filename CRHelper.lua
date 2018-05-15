@@ -433,7 +433,7 @@ function CRHelper.combatTip( eventCode , activeCombatTipId )
 end
 
 function CRHelper.PlayerCombatState( )
-	if ( IsUnitInCombat("player") and string.find(string.lower(GetUnitName("boss1")), "Z'Maja") ) then
+	if ( IsUnitInCombat("player") and string.find(string.lower(GetUnitName("boss1")), "z'maja") ) then
 		CRHelper.StartMonitoringFight()
 	else
 		-- Avoid false positives of combat end, often caused by combat rezzes
@@ -447,10 +447,13 @@ function CRHelper.StartMonitoringFight( )
 end
 
 function CRHelper.StopMonitoringFight( )
+
 	CRHelper.monitoringFight = false
 
 	CRHelperFrame:SetHidden(true)
 	CRHelper.stopTimer = true
+
+	CRHelper.inExecute = false
 
 end
 
@@ -688,7 +691,7 @@ function CRHelper.RoaringFlare(eventCode, result, isError, abilityName, abilityG
 	if (result == ACTION_RESULT_BEGIN) then
 
 		-- second player gets fire (should only happen on execute)
-		if (CRHelper.inExecute) then
+		if ( CRHelper.fireStarted and CRHelper.inExecute ) then
 			
 			CRHelper.fireTargetUnit2 = targetUnitId
 			CRHelper.FireControlShow(CRHelper.FormatRoaringFlareMessage())
