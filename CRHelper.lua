@@ -57,7 +57,7 @@ CRHelper = {
 	----- ROARING FLARE (FIRE) -----
 		roaringFlareId = 103531, -- {103531, 103922, 103921}
 		roaringFlareDuration = 6, -- countdown for timer
-		roaringFlareMessage = "|cFFA500<<a:1>>|r: |cFF4500<<2>>|r", -- name: <<1>> countdown: <<2>>
+		roaringFlareMessage = "<<a:1>>: |cFF4500<<2>>|r", -- name: <<1>> countdown: <<2>>
 		roaringFlareRadius = 0.0035, -- used by LibPositionIndicator to determine if a player is within fire aoe radius
 
 		fireStarted = false,
@@ -75,7 +75,7 @@ CRHelper = {
 		hoarfrostSynergyId = 103697,
 		hoarfrostAoeId = 103765,
 		hoarfrostDuration = 6, -- how many seconds until synergy available
-		hoarfrostMessage = "|c00FFFFDROP FROST|r: |c00BFFF<<1>>|r", -- countdown: <<1>>
+		hoarfrostMessage = "DROP FROST: |c00BFFF<<1>>|r", -- countdown: <<1>>
 		hoarfrostSynergyMessage = "|c1E90FF<<a:1>>|r DROPS FROST!", -- name: <<1>>
 
 		frostStarted = false,
