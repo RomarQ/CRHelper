@@ -75,7 +75,7 @@ CRHelper = {
 		hoarfrostSynergyId = 103697,
 		hoarfrostAoeId = 103765,
 		hoarfrostDuration = 6, -- how many seconds until synergy available
-		hoarfrostMessage = "|c00FFFFDROP FROST|r: |c00BFFF<<1>>|r", -- name: <<1>> countdown: <<2>>
+		hoarfrostMessage = "|c00FFFFDROP FROST|r: |c00BFFF<<1>>|r", -- countdown: <<1>>
 		hoarfrostSynergyMessage = "|c1E90FF<<a:1>>|r DROPS FROST!", -- name: <<1>>
 
 		frostStarted = false,
