@@ -725,10 +725,16 @@ function CRHelper.FireTimerTick()
 	CRHelper.fireCount = CRHelper.fireCount - 1
 
 	if (CRHelper.fireCount < 0) then
+
+		CRHelper.fireStarted = false
+		CRHelper.fireTargetUnit1 = 0
+		CRHelper.fireTargetUnit2 = 0
 		CRHelper.FireTimerStopAndHide()
+
 	else
+
 		CRFire_Label:SetText(CRHelper.FormatRoaringFlareMessage())
-		PlaySound(SOUNDS.DUEL_BOUNDARY_WARNING)
+		PlaySound(SOUNDS.DUEL_BOUNDARY_WARNING)		
 	end
 
 end
