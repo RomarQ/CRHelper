@@ -58,9 +58,12 @@ CRHelper = {
 		roaringFlareId = 103531, -- {103531, 103922, 103921}
 		roaringFlareDuration = 6, -- countdown for timer
 		roaringFlareMessage = "<<a:1>>: |cFF4500<<2>>|r", -- name: <<1>> countdown: <<2>>
+		roaringFlareMessage2 = "<<a:1>> |cFF0000+|r <<a:2>>: |cFF4500<<3>>|r", -- name1: <<1>> name2: <<2>> countdown: <<3>>
 		roaringFlareRadius = 0.0035, -- used by LibPositionIndicator to determine if a player is within fire aoe radius
 
 		fireStarted = false,
+		fireTargetUnit1 = 0, -- unit id of the first target
+		fireTargetUnit2 = 0, -- unit id of the second target (only on execute)
 		fireTargetName = "", -- Roaring Flare target name
 		fireCount = 0,  -- Roaring Flare counter
 
@@ -642,30 +645,75 @@ function CRHelper:RegisterRoaringFlare()
 
 end
 
+-- Returns one name or concatinates two names into one string sorting them by unit id
+function CRHelper.FormatRoaringFlareMessage()
+
+	if (CRHelper.fireTargetUnit1 > 0 and CRHelper.fireTargetUnit2 > 0) then
+	
+		if (CRHelper.fireTargetUnit1 > CRHelper.fireTargetUnit2) then
+
+			return zo_strformat(CRHelper.roaringFlareMessage2, LUNIT:GetNameForUnitId(CRHelper.fireTargetUnit1), LUNIT:GetNameForUnitId(CRHelper.fireTargetUnit2), CRHelper.fireCount)
+
+		else
+
+			return zo_strformat(CRHelper.roaringFlareMessage2, LUNIT:GetNameForUnitId(CRHelper.fireTargetUnit2), LUNIT:GetNameForUnitId(CRHelper.fireTargetUnit1), CRHelper.fireCount)
+
+		end
+
+	elseif (CRHelper.fireTargetUnit1 > 0 and CRHelper.fireTargetUnit2 == 0) then
+
+		return zo_strformat(CRHelper.roaringFlareMessage, LUNIT:GetNameForUnitId(CRHelper.fireTargetUnit1), CRHelper.fireCount)
+
+	elseif (CRHelper.fireTargetUnit1 == 0 and CRHelper.fireTargetUnit2 > 0) then -- shouldn't happen, but whatever
+
+		return zo_strformat(CRHelper.roaringFlareMessage, LUNIT:GetNameForUnitId(CRHelper.fireTargetUnit2), CRHelper.fireCount)
+	
+	else
+	
+		return ""
+
+	end
+
+end
+
 function CRHelper.RoaringFlare(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
 
 	if ( not CRHelper.savedVariables.trackRoaringFlare ) then return end
 
 	if (result == ACTION_RESULT_BEGIN) then
 
-		CRHelper.fireStarted = true
-		CRHelper.fireUnitTag = LUNIT:GetUnitTagForUnitId(targetUnitId) -- get tag of target
-		CRHelper.fireTargetName = LUNIT:GetNameForUnitId(targetUnitId) -- get name of target
-		CRHelper.fireCount = CRHelper.roaringFlareDuration -- countdown
+		-- second player gets fire (should only happen on execute)
+		if (CRHelper.fireStarted) then
+			
+			CRHelper.fireTargetUnit2 = targetUnitId
+			CRHelper.FireControlShow(CRHelper.FormatRoaringFlareMessage())
 
-		if ( targetType ~= COMBAT_UNIT_TYPE_PLAYER and CRHelper.savedVariables.positionIndicatorEnabled ) then
-			LibPI:PostitionIndicatorShow()
+		-- first player gets fire
+		else
+	
+			CRHelper.fireStarted = true
+			CRHelper.fireTargetUnit1 = targetUnitId
+			CRHelper.fireUnitTag = LUNIT:GetUnitTagForUnitId(targetUnitId) -- get tag of target
+			CRHelper.fireTargetName = LUNIT:GetNameForUnitId(targetUnitId) -- get name of target
+			CRHelper.fireCount = CRHelper.roaringFlareDuration -- countdown
+
+			if (targetType ~= COMBAT_UNIT_TYPE_PLAYER and CRHelper.savedVariables.positionIndicatorEnabled) then
+				LibPI:PostitionIndicatorShow()
+			end
+
+			EVENT_MANAGER:UnregisterForUpdate("FireTimer")
+			EVENT_MANAGER:RegisterForUpdate("FireTimer", 1000, CRHelper.FireTimerTick)
+
+			CRHelper.FireControlShow(CRHelper.FormatRoaringFlareMessage())
+			PlaySound(SOUNDS.DUEL_START)
+
 		end
-
-		EVENT_MANAGER:UnregisterForUpdate("FireTimer")
-		EVENT_MANAGER:RegisterForUpdate("FireTimer", 1000, CRHelper.FireTimerTick)
-
-		CRHelper.FireControlShow(zo_strformat(CRHelper.roaringFlareMessage, CRHelper.fireTargetName, CRHelper.fireCount))
-		PlaySound(SOUNDS.DUEL_START)
 
 	elseif (result == ACTION_RESULT_EFFECT_FADED) then
 
 		CRHelper.fireStarted = false
+		CRHelper.fireTargetUnit1 = 0
+		CRHelper.fireTargetUnit2 = 0
 		CRHelper.FireTimerStopAndHide()
 
 	end
@@ -680,7 +728,7 @@ function CRHelper.FireTimerTick()
 	if (CRHelper.fireCount < 0) then
 		CRHelper.FireTimerStopAndHide()
 	else
-		CRFire_Label:SetText(zo_strformat(CRHelper.roaringFlareMessage, CRHelper.fireTargetName, CRHelper.fireCount))
+		CRFire_Label:SetText(CRHelper.FormatRoaringFlareMessage())
 		PlaySound(SOUNDS.DUEL_BOUNDARY_WARNING)
 	end
 
