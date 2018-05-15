@@ -84,6 +84,9 @@ CRHelper = {
 		frostCount = 0,  -- Hoarfrost counter
 		frostAlpha = 1,  -- Hoarfrost counter opacity
 		frostSynergy = false, -- Hoarfrost synergy available
+		frostAoeActive = false, -- Frost AoE on the ground
+		frostAoeTickGained = 0, -- Time of the last gained tick
+		frostAoeTickFaded = 0, -- Time of the last faded tick
 
 	----- /Hoarfrost (FROST) -----
 
@@ -812,18 +815,66 @@ end
 
 function CRHelper.HoarfrostAoe(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
 
+	if (not CRHelper.savedVariables.trackHoarfrost) then return end
+
+	local t = GetFrameTimeSeconds()
+
 	-- if a player doesn't have hoarfrost on him, but there is an aoe to pick up, then spam him with notifications
 	if (not CRHelper.frostStarted) then
 
 		if (result == ACTION_RESULT_EFFECT_GAINED) then
+		
+			-- while frost aoe is active, trigger notification every 1.5s
+			if (not CRHelper.frostAoeActive) then
 
-			CRHelper.FrostControlShow("PICK UP FROST!")
-			PlaySound(SOUNDS.DEATH_RECAP_ATTACK_SHOWN)
+				EVENT_MANAGER:UnregisterForUpdate("HoarfrostAoeTick")
+				EVENT_MANAGER:RegisterForUpdate("HoarfrostAoeTick", 1500, CRHelper.HoarfrostAoeTick)
+
+				CRFrost_Label:SetText("PICK UP FROST!")
+				CRHelper.FadeInControl(CRFrost, 800)
+
+				PlaySound(SOUNDS.DEATH_RECAP_ATTACK_SHOWN)
+
+			end
+
+			CRHelper.frostAoeActive = true
+			CRHelper.frostAoeTickGained = t
 
 		elseif (result == ACTION_RESULT_EFFECT_FADED) then
 
-			CRHelper.FrostControlHide()
+			CRHelper.frostAoeTickFaded = t
 
+		end
+
+	end
+
+end
+
+function CRHelper.HoarfrostAoeTick()
+
+	local t = GetFrameTimeSeconds()
+
+	-- if another frost tick occured recently, then keep the message, otherwise stop the notification
+	if (t - CRHelper.frostAoeTickGained < 1) then
+
+		-- don't show it to a player who picked up another frost
+		if (not CRHelper.frostStarted) then
+
+			CRFrost_Label:SetText("PICK UP FROST!")
+			CRHelper.FadeInControl(CRFrost, 800)
+			
+			PlaySound(SOUNDS.DEATH_RECAP_ATTACK_SHOWN)
+
+		end
+
+	else
+
+		EVENT_MANAGER:UnregisterForUpdate("HoarfrostAoeTick")
+		CRHelper.frostAoeActive = false
+
+		-- don't hide control if player has frost debuff
+		if (not CRHelper.frostStarted) then
+			CRHelper.FrostControlHide()
 		end
 
 	end
@@ -1035,6 +1086,22 @@ function CRHelper.FadeOutControl(control, duration)
         control:SetHidden(true)
 		control:SetAlpha(1)
     end)
+    timeline:PlayFromStart()
+
+end
+
+-- Fade in animation for any custom control
+function CRHelper.FadeInControl(control, duration)
+
+    local animation, timeline = CreateSimpleAnimation(ANIMATION_ALPHA, control)
+ 
+	control:SetAlpha(0)
+	control:SetHidden(false)
+ 
+    animation:SetAlphaValues(0, 1)
+    animation:SetDuration(duration or 1000)
+ 
+    timeline:SetPlaybackType(ANIMATION_PLAYBACK_ONE_SHOT)
     timeline:PlayFromStart()
 
 end
