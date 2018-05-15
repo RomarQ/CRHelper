@@ -794,6 +794,7 @@ function CRHelper.HoarfrostSynergy(eventCode, result, isError, abilityName, abil
 
 		-- after 5s don't wait for event and hide the message
 		-- to prevent an issue when the message stays inside shadow realm, because people inside it don't recieve some events from people outside
+		--[[ not needed atm, because we only track frost synergy on ourselves
 		zo_callLater(
 			function()
 				if (CRHelper.frostSynergy) then
@@ -803,6 +804,7 @@ function CRHelper.HoarfrostSynergy(eventCode, result, isError, abilityName, abil
 			end,
 			5000
 		)
+		]]
 
 	elseif (result == ACTION_RESULT_EFFECT_FADED) then
 
