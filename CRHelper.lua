@@ -70,10 +70,11 @@ CRHelper = {
 
 	----- Hoarfrost (FROST) -----
 
-		hoarfrostIds = {103760, 105151},
+		hoarfrostId = 103695,
+		hoarfrostCastId = 103760,
 		hoarfrostSynergyId = 103697,
-		hoarfrostDuration = 10, -- how many seconds until synergy available
-		hoarfrostMessage = "|c00FFFF<<a:1>>|r: |c1E90FF<<2>>|r", -- name: <<1>> countdown: <<2>>
+		hoarfrostDuration = 6, -- how many seconds until synergy available
+		hoarfrostMessage = "|c00FFFFDROP FROST|r: |c00BFFF<<1>>|r", -- name: <<1>> countdown: <<2>>
 		hoarfrostSynergyMessage = "|c1E90FF<<a:1>>|r DROPS FROST!", -- name: <<1>>
 
 		frostStarted = false,
@@ -714,19 +715,73 @@ end
 
 function CRHelper:RegisterHoarfrost()
 
+	-- FROST INC
+	EVENT_MANAGER:RegisterForEvent("HoarfrostCast", EVENT_COMBAT_EVENT, self.HoarfrostCast)
+	EVENT_MANAGER:AddFilterForEvent("HoarfrostCast", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, self.hoarfrostCastId)
+
+	-- COUNTDOWN
+	EVENT_MANAGER:RegisterForEvent("Hoarfrost", EVENT_COMBAT_EVENT, self.Hoarfrost)
+	EVENT_MANAGER:AddFilterForEvent("Hoarfrost", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, self.hoarfrostId)
+
+	-- SYNERGY AVAILABLE
 	EVENT_MANAGER:RegisterForEvent("HoarfrostSynergy", EVENT_COMBAT_EVENT, self.HoarfrostSynergy)
 	EVENT_MANAGER:AddFilterForEvent("HoarfrostSynergy", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, self.hoarfrostSynergyId)
 
 end
 
+function CRHelper.HoarfrostCast(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
+
+	if (not CRHelper.savedVariables.trackHoarfrost or targetType ~= COMBAT_UNIT_TYPE_PLAYER) then return end
+
+	if (result == ACTION_RESULT_BEGIN) then
+
+		CRHelper.FrostControlShow("FROST INC")
+		PlaySound(SOUNDS.NEW_MAIL)
+
+	-- Need additional check here because this event can be fired after Hoarfrost effect gained (thus will hide the timer)
+	elseif (not CRHelper.frostStarted and result == ACTION_RESULT_EFFECT_FADED) then
+
+		CRHelper.FrostControlHide()
+
+	end
+
+end
+
+function CRHelper.Hoarfrost(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
+
+	if (not CRHelper.savedVariables.trackHoarfrost or targetType ~= COMBAT_UNIT_TYPE_PLAYER) then return end
+
+	if (result == ACTION_RESULT_EFFECT_GAINED) then
+
+		CRHelper.frostStarted = true
+		CRHelper.frostCount = CRHelper.hoarfrostDuration
+
+		EVENT_MANAGER:UnregisterForUpdate("FrostTimer")
+		EVENT_MANAGER:RegisterForUpdate("FrostTimer", 1000, CRHelper.FrostTimerTick)
+
+		CRHelper.FrostControlShow(zo_strformat(CRHelper.hoarfrostMessage, CRHelper.frostCount))
+		PlaySound(SOUNDS.JUSTICE_NOW_KOS)
+
+	elseif (result == ACTION_RESULT_EFFECT_FADED) then
+
+		CRHelper.frostStarted = false
+		CRHelper.FrostTimerStopAndHide()
+
+	end
+
+end
+
 function CRHelper.HoarfrostSynergy(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
 
-	if ( not CRHelper.savedVariables.trackHoarfrost ) then return end
+	if (not CRHelper.savedVariables.trackHoarfrost or targetType ~= COMBAT_UNIT_TYPE_PLAYER) then return end
 
 	if (result == ACTION_RESULT_EFFECT_GAINED_DURATION) then
 
+		-- Stop countdown
+		CRHelper.FrostTimerStopAndHide()
+
 		CRHelper.frostSynergy = true
-		CRHelper.FrostControlShow(targetType == COMBAT_UNIT_TYPE_PLAYER and "DROP NOW!" or zo_strformat(CRHelper.hoarfrostSynergyMessage, LUNIT:GetNameForUnitId(targetUnitId)))
+		CRHelper.FrostControlShow("DROP NOW!")
 		PlaySound(SOUNDS.DUEL_START)
 
 		-- after 5s don't wait for event and hide the message
@@ -747,6 +802,27 @@ function CRHelper.HoarfrostSynergy(eventCode, result, isError, abilityName, abil
 		CRHelper.FrostControlHide()
 
 	end
+
+end
+
+function CRHelper.FrostTimerTick()
+
+	CRHelper.frostCount = CRHelper.frostCount - 1
+
+	if (CRHelper.frostCount < 0) then
+		CRHelper.FrostTimerStopAndHide()
+	else
+		CRHelper.FrostControlShow(zo_strformat(CRHelper.hoarfrostMessage, CRHelper.frostCount))
+		PlaySound(SOUNDS.COUNTDOWN_TICK)
+	end
+
+end
+
+function CRHelper.FrostTimerStopAndHide()
+
+	EVENT_MANAGER:UnregisterForUpdate("FrostTimer")
+	CRHelper.frostCount = 0
+	CRHelper.FrostControlHide()
 
 end
 
