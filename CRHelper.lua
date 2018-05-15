@@ -679,7 +679,7 @@ end
 function CRHelper.RoaringFlare(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
 
 	if ( not CRHelper.savedVariables.trackRoaringFlare ) then return end
-
+	
 	if (result == ACTION_RESULT_BEGIN) then
 
 		-- second player gets fire (should only happen on execute)
@@ -718,7 +718,6 @@ function CRHelper.RoaringFlare(eventCode, result, isError, abilityName, abilityG
 
 	end
 
-	CRHelper.fireStarted = true
 end
 
 function CRHelper.FireTimerTick()
