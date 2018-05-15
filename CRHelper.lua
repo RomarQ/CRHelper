@@ -73,6 +73,7 @@ CRHelper = {
 		hoarfrostId = 103695,
 		hoarfrostCastId = 103760,
 		hoarfrostSynergyId = 103697,
+		hoarfrostAoeId = 103765,
 		hoarfrostDuration = 6, -- how many seconds until synergy available
 		hoarfrostMessage = "|c00FFFFDROP FROST|r: |c00BFFF<<1>>|r", -- name: <<1>> countdown: <<2>>
 		hoarfrostSynergyMessage = "|c1E90FF<<a:1>>|r DROPS FROST!", -- name: <<1>>
@@ -726,6 +727,10 @@ function CRHelper:RegisterHoarfrost()
 	-- SYNERGY AVAILABLE
 	EVENT_MANAGER:RegisterForEvent("HoarfrostSynergy", EVENT_COMBAT_EVENT, self.HoarfrostSynergy)
 	EVENT_MANAGER:AddFilterForEvent("HoarfrostSynergy", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, self.hoarfrostSynergyId)
+	
+	-- AOE
+	EVENT_MANAGER:RegisterForEvent("HoarfrostAoe", EVENT_COMBAT_EVENT, self.HoarfrostAoe)
+	EVENT_MANAGER:AddFilterForEvent("HoarfrostAoe", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, self.hoarfrostAoeId)
 
 end
 
@@ -800,6 +805,26 @@ function CRHelper.HoarfrostSynergy(eventCode, result, isError, abilityName, abil
 
 		CRHelper.frostSynergy = false
 		CRHelper.FrostControlHide()
+
+	end
+
+end
+
+function CRHelper.HoarfrostAoe(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
+
+	-- if a player doesn't have hoarfrost on him, but there is an aoe to pick up, then spam him with notifications
+	if (not CRHelper.frostStarted) then
+
+		if (result == ACTION_RESULT_EFFECT_GAINED) then
+
+			CRHelper.FrostControlShow("PICK UP FROST!")
+			PlaySound(SOUNDS.DEATH_RECAP_ATTACK_SHOWN)
+
+		elseif (result == ACTION_RESULT_EFFECT_FADED) then
+
+			CRHelper.FrostControlHide()
+
+		end
 
 	end
 
