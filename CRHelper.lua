@@ -35,7 +35,7 @@ CRHelper = {
 	-- Core flags
 		active = false,	-- true when inside Cloudrest
 		monitoringFight = false, -- true when inCombat against Z'Maja
-		inExecute = false,
+		--inExecute = false,
 
 		executeStartId = 107991,
 	----- Portal Phase (Shadow Realm) -----
@@ -57,20 +57,18 @@ CRHelper = {
 
 
 	----- ROARING FLARE (FIRE) -----
-		roaringFlareId 	= 103531, -- {103531, 103922, 103921}
-		roaringFlareId_2 = 110431,
-		roaringFlareDuration = 6, -- countdown for timer
+
+		roaringFlareId 	= 103531, -- primary target
+		roaringFlareId2 = 110431, -- secondary target
+		roaringFlareDuration = 6, -- number of seconds until the explosion
 		roaringFlareMessage = "<<a:1>>: |cFF4500<<2>>|r", -- name: <<1>> countdown: <<2>>
 		roaringFlareMessage2 = "<<a:1>> |cFF0000+|r <<a:2>>: |cFF4500<<3>>|r", -- name1: <<1>> name2: <<2>> countdown: <<3>>
 		roaringFlareRadius = 0.0035, -- used by LibPositionIndicator to determine if a player is within fire aoe radius
 
-		fireStarted = false,
-		fireTargetUnit1 = 0, -- unit id of the first target
-		fireTargetUnit2 = 0, -- unit id of the second target (only on execute)
-		fireTargetName = "", -- Roaring Flare target name
-		fireCount = 0,  -- Roaring Flare counter
+		fireTargetUnit1 = 0, -- unit id of the primary target
+		fireTargetUnit2 = 0, -- unit id of the secondary target (only on execute)
+		fireCount = 0, -- current countdown value
 
-		fireUnitTag = "player",
 	----- /ROARING FLARE (FIRE) -----
 
 
@@ -236,9 +234,9 @@ function CRHelper.PlayerActivated( eventCode, initial )
 			-- Register for Baneful Mark on execute
 			EVENT_MANAGER:RegisterForEvent("BanefulMarkOnExecute", EVENT_COMBAT_EVENT, CRHelper.BanefulMarkOnExecute )
 			EVENT_MANAGER:AddFilterForEvent("BanefulMarkOnExecute", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, CRHelper.BanefulMarkOnExecuteId )
-			
-			EVENT_MANAGER:RegisterForEvent("inExecute", EVENT_COMBAT_EVENT, function() CRHelper.inExecute = true end )
-			EVENT_MANAGER:AddFilterForEvent("inExecute", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, CRHelper.executeStartId )
+
+			--EVENT_MANAGER:RegisterForEvent("inExecute", EVENT_COMBAT_EVENT, function() CRHelper.inExecute = true end )
+			--EVENT_MANAGER:AddFilterForEvent("inExecute", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, CRHelper.executeStartId )
 
 			EVENT_MANAGER:RegisterForEvent("inCombat", EVENT_PLAYER_COMBAT_STATE, CRHelper.PlayerCombatState )
 
@@ -454,7 +452,7 @@ function CRHelper.StopMonitoringFight( )
 	CRHelperFrame:SetHidden(true)
 	CRHelper.stopTimer = true
 
-	CRHelper.inExecute = false
+	--CRHelper.inExecute = false
 
 end
 
@@ -646,106 +644,113 @@ end
 
 function CRHelper:RegisterRoaringFlare()
 
+	-- Primary target
 	EVENT_MANAGER:RegisterForEvent("RoaringFlare", EVENT_COMBAT_EVENT, self.RoaringFlare)
 	EVENT_MANAGER:AddFilterForEvent("RoaringFlare", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, self.roaringFlareId)
 
-	EVENT_MANAGER:RegisterForEvent("RoaringFlare2", EVENT_COMBAT_EVENT, self.RoaringFlare)
-	EVENT_MANAGER:AddFilterForEvent("RoaringFlare2", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, self.roaringFlareId_2 )
+	-- Secondary target (only on execute)
+	EVENT_MANAGER:RegisterForEvent("RoaringFlare2", EVENT_COMBAT_EVENT, self.RoaringFlare2)
+	EVENT_MANAGER:AddFilterForEvent("RoaringFlare2", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, self.roaringFlareId2)
 
-	-- Starts a Position Indicator that will allow everyone to know where the player is.
+	-- Initializes the arrow that will allow everyone to know where the Roaring Flare target is
 	LibPI:HandleUpdate()
 
 end
 
--- Returns one name or concatinates two names into one string sorting them by unit id
+-- Formats and returns one name or concatinates two names into one string
 function CRHelper.FormatRoaringFlareMessage()
 
+	-- 2 players with roaring flare
 	if (CRHelper.fireTargetUnit1 > 0 and CRHelper.fireTargetUnit2 > 0) then
-	
-		if (CRHelper.fireTargetUnit1 > CRHelper.fireTargetUnit2) then
+		return zo_strformat(CRHelper.roaringFlareMessage2, LUNIT:GetNameForUnitId(CRHelper.fireTargetUnit1), LUNIT:GetNameForUnitId(CRHelper.fireTargetUnit2), CRHelper.fireCount)
+	-- 1 player with roaring flare
+	elseif (CRHelper.fireTargetUnit1 > 0 and CRHelper.fireTargetUnit2 == 0) then
+		return zo_strformat(CRHelper.roaringFlareMessage, LUNIT:GetNameForUnitId(CRHelper.fireTargetUnit1), CRHelper.fireCount)
+	-- 1 player with secondary roaring flare (probably can happen if main target dies)
+	elseif (CRHelper.fireTargetUnit1 == 0 and CRHelper.fireTargetUnit2 > 0) then
+		return zo_strformat(CRHelper.roaringFlareMessage, LUNIT:GetNameForUnitId(CRHelper.fireTargetUnit2), CRHelper.fireCount)
+	else
+		return ""
+	end
 
-			return zo_strformat(CRHelper.roaringFlareMessage2, LUNIT:GetNameForUnitId(CRHelper.fireTargetUnit1), LUNIT:GetNameForUnitId(CRHelper.fireTargetUnit2), CRHelper.fireCount)
+end
 
-		else
+-- Main function to handle Roaring Flare event
+function CRHelper.RoaringFlare(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
 
-			return zo_strformat(CRHelper.roaringFlareMessage2, LUNIT:GetNameForUnitId(CRHelper.fireTargetUnit2), LUNIT:GetNameForUnitId(CRHelper.fireTargetUnit1), CRHelper.fireCount)
+	if (not CRHelper.savedVariables.trackRoaringFlare) then return end
 
+	if (result == ACTION_RESULT_BEGIN) then
+
+		CRHelper.fireTargetUnit1 = targetUnitId
+		CRHelper.fireCount = CRHelper.roaringFlareDuration
+
+		if (CRHelper.savedVariables.positionIndicatorEnabled and targetType ~= COMBAT_UNIT_TYPE_PLAYER) then
+			LibPI:SetTargetUnitTag(LUNIT:GetUnitTagForUnitId(targetUnitId))
+			LibPI:PostitionIndicatorShow()
 		end
 
-	elseif (CRHelper.fireTargetUnit1 > 0 and CRHelper.fireTargetUnit2 == 0) then
+		EVENT_MANAGER:UnregisterForUpdate("FireTimer")
+		EVENT_MANAGER:RegisterForUpdate("FireTimer", 1000, CRHelper.FireTimerTick)
 
-		return zo_strformat(CRHelper.roaringFlareMessage, LUNIT:GetNameForUnitId(CRHelper.fireTargetUnit1), CRHelper.fireCount)
+		CRHelper.FireControlShow(CRHelper.FormatRoaringFlareMessage())
+		PlaySound(SOUNDS.DUEL_START)
 
-	elseif (CRHelper.fireTargetUnit1 == 0 and CRHelper.fireTargetUnit2 > 0) then -- shouldn't happen, but whatever
+	elseif (result == ACTION_RESULT_EFFECT_FADED) then
 
-		return zo_strformat(CRHelper.roaringFlareMessage, LUNIT:GetNameForUnitId(CRHelper.fireTargetUnit2), CRHelper.fireCount)
-	
-	else
-	
-		return ""
+		CRHelper.fireTargetUnit1 = 0
+
+		-- if secondary target still has fire, then don't hide the timer
+		-- can happen if main target dies before the explosion
+		if (CRHelper.fireTargetUnit2 == 0) then
+			CRHelper.FireTimerStopAndHide()
+		end
 
 	end
 
 end
 
-function CRHelper.RoaringFlare(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
+-- Handles Roaring Flare for secondary target on execute
+-- We only set CRHelper.fireTargetUnit2 value here and change arrow target if needed
+function CRHelper.RoaringFlare2(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
 
-	if ( not CRHelper.savedVariables.trackRoaringFlare ) then return end
+	if (not CRHelper.savedVariables.trackRoaringFlare) then return end
 	
 	if (result == ACTION_RESULT_BEGIN) then
 
-		-- second player gets fire (should only happen on execute)
-		if ( CRHelper.fireStarted and CRHelper.inExecute ) then
-			
-			CRHelper.fireTargetUnit2 = targetUnitId
-			CRHelper.FireControlShow(CRHelper.FormatRoaringFlareMessage())
+		CRHelper.fireTargetUnit2 = targetUnitId	
+		CRHelper.FireControlShow(CRHelper.FormatRoaringFlareMessage())
 
-		-- first player gets fire
-		else
-	
-			CRHelper.fireStarted = true
-			CRHelper.fireTargetUnit1 = targetUnitId
-			CRHelper.fireUnitTag = LUNIT:GetUnitTagForUnitId(targetUnitId) -- get tag of target
-			CRHelper.fireTargetName = LUNIT:GetNameForUnitId(targetUnitId) -- get name of target
-			CRHelper.fireCount = CRHelper.roaringFlareDuration -- countdown
-
-			if (targetType ~= COMBAT_UNIT_TYPE_PLAYER and CRHelper.savedVariables.positionIndicatorEnabled) then
-				LibPI:PostitionIndicatorShow()
-			end
-
-			EVENT_MANAGER:UnregisterForUpdate("FireTimer")
-			EVENT_MANAGER:RegisterForUpdate("FireTimer", 1000, CRHelper.FireTimerTick)
-
-			CRHelper.FireControlShow(CRHelper.FormatRoaringFlareMessage())
-			PlaySound(SOUNDS.DUEL_START)
-
+		if (CRHelper.savedVariables.positionIndicatorEnabled and targetType ~= COMBAT_UNIT_TYPE_PLAYER) then
+			LibPI:SetTargetUnitTag(LUNIT:GetUnitTagForUnitId(targetUnitId))
+			LibPI:PostitionIndicatorShow()
 		end
 
 	elseif (result == ACTION_RESULT_EFFECT_FADED) then
 
-		CRHelper.fireStarted = false
-		CRHelper.fireTargetUnit1 = 0
 		CRHelper.fireTargetUnit2 = 0
-		CRHelper.FireTimerStopAndHide()
+
+		-- if primary target still has fire, then don't hide the timer
+		-- can happen if secondary target dies before the explosion
+		if (CRHelper.fireTargetUnit1 == 0) then
+			CRHelper.FireTimerStopAndHide()
+		end
 
 	end
 
 end
 
+-- Countdown tick
 function CRHelper.FireTimerTick()
 
 	CRHelper.fireCount = CRHelper.fireCount - 1
 
 	if (CRHelper.fireCount < 0) then
-
-		CRHelper.fireStarted = false
 		CRHelper.fireTargetUnit1 = 0
 		CRHelper.fireTargetUnit2 = 0
 		CRHelper.FireTimerStopAndHide()
-
 	else
-
-		CRFire_Label:SetText(CRHelper.FormatRoaringFlareMessage())
+		CRHelper.FireControlShow(CRHelper.FormatRoaringFlareMessage())
 		PlaySound(SOUNDS.DUEL_BOUNDARY_WARNING)		
 	end
 

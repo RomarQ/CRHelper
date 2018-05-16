@@ -7,11 +7,23 @@ PLAYER_UNIT_TAG = "player"
 ARROW = nil
 REFRESH_TIME = 40
 
+-- Target for arrow
+-- Use lib:SetTargetUnitTag(tag) function to change it
+local targetUnitTag = "player"
+
 -- Functions
 
 local function GetTexturePath()
 	local textureIndex = CRHelper.savedVariables.positionIndicatorTexture or 1
 	return CRHelper.name.."/texture/arrow"..textureIndex..".dds"
+end
+
+function lib:GetTargetUnitTag()
+	return targetUnitTag
+end
+
+function lib:SetTargetUnitTag(tag)
+	targetUnitTag = tag
 end
 
 function lib:CreateTexture()
@@ -78,7 +90,7 @@ local function StartUpdate()
         function()
 
 			local playerX, playerY = GetMapPlayerPosition(PLAYER_UNIT_TAG)
-			local targetX, targetY = GetMapPlayerPosition(CRHelper.fireUnitTag)
+			local targetX, targetY = GetMapPlayerPosition(targetUnitTag)
 			local distance = GetDistancePlayerToPlayer(playerX, playerY, targetX, targetY)
 
 			if (distance < CRHelper.roaringFlareRadius) then
