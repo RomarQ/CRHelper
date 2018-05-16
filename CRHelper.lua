@@ -433,7 +433,7 @@ function CRHelper.combatTip( eventCode , activeCombatTipId )
 end
 
 function CRHelper.PlayerCombatState( )
-	if ( IsUnitInCombat("player") and string.find(string.lower(GetUnitName("boss1")), "z'maja") ) then
+	if ( IsUnitInCombat("player") ) then -- and string.find(string.lower(GetUnitName("boss1")), "z'maja") ) then
 		CRHelper.StartMonitoringFight()
 	else
 		-- Avoid false positives of combat end, often caused by combat rezzes
