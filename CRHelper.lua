@@ -57,7 +57,8 @@ CRHelper = {
 
 
 	----- ROARING FLARE (FIRE) -----
-		roaringFlareId = 103531, -- {103531, 103922, 103921}
+		roaringFlareId 	= 103531, -- {103531, 103922, 103921}
+		roaringFlareId_2 = 110431,
 		roaringFlareDuration = 6, -- countdown for timer
 		roaringFlareMessage = "<<a:1>>: |cFF4500<<2>>|r", -- name: <<1>> countdown: <<2>>
 		roaringFlareMessage2 = "<<a:1>> |cFF0000+|r <<a:2>>: |cFF4500<<3>>|r", -- name1: <<1>> name2: <<2>> countdown: <<3>>
@@ -647,6 +648,9 @@ function CRHelper:RegisterRoaringFlare()
 
 	EVENT_MANAGER:RegisterForEvent("RoaringFlare", EVENT_COMBAT_EVENT, self.RoaringFlare)
 	EVENT_MANAGER:AddFilterForEvent("RoaringFlare", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, self.roaringFlareId)
+
+	EVENT_MANAGER:RegisterForEvent("RoaringFlare2", EVENT_COMBAT_EVENT, self.RoaringFlare)
+	EVENT_MANAGER:AddFilterForEvent("RoaringFlare2", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, self.roaringFlareId_2 )
 
 	-- Starts a Position Indicator that will allow everyone to know where the player is.
 	LibPI:HandleUpdate()
