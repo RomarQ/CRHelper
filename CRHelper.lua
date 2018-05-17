@@ -99,7 +99,7 @@ CRHelper = {
 	----- Weapon Swap mechanic ( Shock ) -----
 
 		-- Shock animation started on a player
-		voltaicCurrentIds = {103895, 103896},
+		voltaicCurrentIds = {103895, 103896, 110427},
 
 		-- Big shock aoe on a player (lasts 10 seconds)
 		voltaicOverloadIds = {87346} ,
@@ -148,7 +148,13 @@ local CSA = CENTER_SCREEN_ANNOUNCE
 local combatStartedFrameTime = 0
 local combatEventsList = {} -- list of abilities casted on a player (we use it to filter abilities casted on another players)
 local combatEventsBuffer = {} -- timestamps for each ability/player to don't spam the chat too much
+local combatEventsWhitelist = {} -- names of useful abilities
 local combatEventsBlacklist = {} -- names of useless abilities
+
+combatEventsWhitelist['voltaic current'] = true
+combatEventsWhitelist['voltaic overload'] = true
+combatEventsWhitelist['roaring flare'] = true
+combatEventsWhitelist['hoarfrost'] = true
 
 combatEventsBlacklist['prioritize hit'] = true
 combatEventsBlacklist['randomize base attack'] = true
@@ -450,7 +456,7 @@ function CRHelper.CombatEvent(eventCode, result, isError, abilityName, abilityGr
 			elseif (IsUnitPlayer(targetUnitTag)) then
 
 				targetColor = "00BFFF"
-				if (not combatEventsList[abilityId]) then return end -- the only way to remove other players abilities from output...
+				if (not combatEventsWhitelist[string.lower(GetAbilityName(abilityId))] and not combatEventsList[abilityId]) then return end -- the only way to remove other players abilities from output...
 
 			end
 
