@@ -61,8 +61,8 @@ CRHelper = {
 		roaringFlareId 	= 103531, -- primary target
 		roaringFlareId2 = 110431, -- secondary target
 		roaringFlareDuration = 6, -- number of seconds until the explosion
-		roaringFlareMessage = "<<a:1>>: |cFF4500<<2>>|r", -- name: <<1>> countdown: <<2>>
-		roaringFlareMessage2 = "<<a:1>> |cFF0000+|r <<a:2>>: |cFF4500<<3>>|r", -- name1: <<1>> name2: <<2>> countdown: <<3>>
+		roaringFlareMessage = "<<1>>: |cFF4500<<2>>|r", -- name: <<1>> countdown: <<2>>
+		roaringFlareMessage2 = "<<1>> |cFF0000+|r <<2>>: |cFF4500<<3>>|r", -- name1: <<1>> name2: <<2>> countdown: <<3>>
 		roaringFlareRadius = 0.0035, -- used by LibPositionIndicator to determine if a player is within fire aoe radius
 
 		fireTargetUnit1 = 0, -- unit id of the primary target
@@ -661,15 +661,21 @@ end
 -- Formats and returns one name or concatinates two names into one string
 function CRHelper.FormatRoaringFlareMessage()
 
+	local tag1  = LUNIT:GetUnitTagForUnitId(CRHelper.fireTargetUnit1)
+	local tag2  = LUNIT:GetUnitTagForUnitId(CRHelper.fireTargetUnit2)
+
+	local name1 = AreUnitsEqual('player', tag1) and 'You' or LUNIT:GetNameForUnitId(CRHelper.fireTargetUnit1)
+	local name2 = AreUnitsEqual('player', tag2) and 'You' or LUNIT:GetNameForUnitId(CRHelper.fireTargetUnit2)
+
 	-- 2 players with roaring flare
 	if (CRHelper.fireTargetUnit1 > 0 and CRHelper.fireTargetUnit2 > 0) then
-		return zo_strformat(CRHelper.roaringFlareMessage2, LUNIT:GetNameForUnitId(CRHelper.fireTargetUnit1), LUNIT:GetNameForUnitId(CRHelper.fireTargetUnit2), CRHelper.fireCount)
+		return zo_strformat(CRHelper.roaringFlareMessage2, name1, name2, CRHelper.fireCount)
 	-- 1 player with roaring flare
 	elseif (CRHelper.fireTargetUnit1 > 0 and CRHelper.fireTargetUnit2 == 0) then
-		return zo_strformat(CRHelper.roaringFlareMessage, LUNIT:GetNameForUnitId(CRHelper.fireTargetUnit1), CRHelper.fireCount)
+		return zo_strformat(CRHelper.roaringFlareMessage, name1, CRHelper.fireCount)
 	-- 1 player with secondary roaring flare (probably can happen if main target dies)
 	elseif (CRHelper.fireTargetUnit1 == 0 and CRHelper.fireTargetUnit2 > 0) then
-		return zo_strformat(CRHelper.roaringFlareMessage, LUNIT:GetNameForUnitId(CRHelper.fireTargetUnit2), CRHelper.fireCount)
+		return zo_strformat(CRHelper.roaringFlareMessage, name2, CRHelper.fireCount)
 	else
 		return ""
 	end
@@ -682,7 +688,7 @@ function CRHelper.RoaringFlare(eventCode, result, isError, abilityName, abilityG
 	if (not CRHelper.savedVariables.trackRoaringFlare) then return end
 
 	if (result == ACTION_RESULT_BEGIN) then
-
+	
 		CRHelper.fireTargetUnit1 = targetUnitId
 		CRHelper.fireCount = CRHelper.roaringFlareDuration
 
