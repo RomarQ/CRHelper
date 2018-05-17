@@ -35,6 +35,7 @@ CRHelper = {
 	-- Core flags
 		active = false,	-- true when inside Cloudrest
 		monitoringFight = false, -- true when inCombat against Z'Maja
+		trackCombatEvents = false, -- when enabled, all combat events are posted into chat
 		--inExecute = false,
 
 		executeStartId = 107991,
@@ -144,6 +145,19 @@ LUNIT = LibStub:GetLibrary("LibUnits")
 LibPI = LibStub:GetLibrary("LibPositionIndicator")
 local CSA = CENTER_SCREEN_ANNOUNCE
 
+local combatStartedFrameTime = 0
+local combatEventsList = {} -- list of abilities casted on a player (we use it to filter abilities casted on another players)
+local combatEventsBuffer = {} -- timestamps for each ability/player to don't spam the chat too much
+local combatEventsBlacklist = {} -- names of useless abilities
+
+combatEventsBlacklist['prioritize hit'] = true
+combatEventsBlacklist['randomize base attack'] = true
+combatEventsBlacklist['main tank trgt'] = true
+combatEventsBlacklist['off tank trgt'] = true
+combatEventsBlacklist['riposte'] = true
+combatEventsBlacklist['hate me dummy'] = true
+combatEventsBlacklist['synergy immunity'] = true
+
 function CRHelper.OnAddOnLoaded(event, addonName)
 	-- The event fires each time *any* addon loads - but we only care about when our own addon loads.
 	if addonName ~= CRHelper.name then return end
@@ -243,6 +257,9 @@ function CRHelper.PlayerActivated( eventCode, initial )
 			-- Register for any combat Tip
 			EVENT_MANAGER:RegisterForEvent("combatTip", EVENT_DISPLAY_ACTIVE_COMBAT_TIP, CRHelper.combatTip )
 
+			EVENT_MANAGER:RegisterForEvent("CloudrestCombatEvent", EVENT_COMBAT_EVENT, CRHelper.CombatEvent)
+			EVENT_MANAGER:AddFilterForEvent("CloudrestCombatEvent", EVENT_COMBAT_EVENT, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_GAINED)
+
 		end
 	else
 		if ( CRHelper.active ) then
@@ -281,6 +298,8 @@ function CRHelper.PlayerActivated( eventCode, initial )
 			end
 
 			EVENT_MANAGER:UnregisterForUpdate(CRHelper.name)
+
+			EVENT_MANAGER:UnregisterForEvent("CloudrestCombatEvent", EVENT_COMBAT_EVENT)
 
 		end
 	end
@@ -396,6 +415,52 @@ function CRHelper.StartOnScreenNotifications()
 end
 ]]
 
+function CRHelper.CombatEvent(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
+
+	if (not CRHelper.trackCombatEvents or not CRHelper.monitoringFight) then return end
+	
+	-- Only track non player events (source type 0).
+	if (result == ACTION_RESULT_EFFECT_GAINED and sourceType == 0) then
+
+		-- skip trash events
+		if (combatEventsBlacklist[string.lower(GetAbilityName(abilityId))]) then return end
+
+		if (combatEventsBuffer[abilityId] == nil) then
+			combatEventsBuffer[abilityId] = {}
+		end
+
+		local t = GetFrameTimeSeconds()
+
+		-- 10 seconds cooldown for each ability message
+		if (combatEventsBuffer[abilityId][targetUnitId] ~= nil and combatEventsBuffer[abilityId][targetUnitId] > t - 10) then return end
+		
+		local targetUnitTag = LUNIT:GetUnitTagForUnitId(targetUnitId)
+		local targetName = LUNIT:GetNameForUnitId(targetUnitId)
+		local targetColor = "FFFFFF"
+
+		if (targetUnitTag ~= '' and targetName ~= '') then
+
+			combatEventsBuffer[abilityId][targetUnitId] = t
+
+			if (AreUnitsEqual('player', targetUnitTag)) then
+
+				targetColor = "00FF00"
+				combatEventsList[abilityId] = true
+
+			elseif (IsUnitPlayer(targetUnitTag)) then
+
+				targetColor = "00BFFF"
+				if (not combatEventsList[abilityId]) then return end -- the only way to remove other players abilities from output...
+
+			end
+
+			d(zo_strformat("[<<1>>] <<2>> - |cFF2200<<3>>|r - |cCCCCCC<<4>>|r", abilityId, "|c" .. targetColor .. targetName .. "|r",  GetAbilityName(abilityId), t - combatStartedFrameTime))
+
+		end
+	end
+
+end
+
 -------------------
 -- Handles important combat tips during Z'Maja boss fight
 -------------------
@@ -444,6 +509,8 @@ end
 function CRHelper.StartMonitoringFight( )
 	CRHelper.monitoringFight = true
 	CRHelper.stopTimer = false
+	
+	combatStartedFrameTime = GetFrameTimeSeconds()
 end
 
 function CRHelper.StopMonitoringFight( )
@@ -454,6 +521,8 @@ function CRHelper.StopMonitoringFight( )
 	CRHelper.stopTimer = true
 
 	--CRHelper.inExecute = false
+
+	combatStartedFrameTime = 0
 
 end
 
@@ -1375,6 +1444,16 @@ SLASH_COMMANDS["/cr"] = function ( command )
 		CRHelper.savedVariables.frameLeft = nil
 		CRHelper.savedVariables.frameTop = nil
 		return
+	end
+
+	if ( command == 'track 1' ) then
+		CRHelper.trackCombatEvents = true
+		d('CRHelper: started tracking combat events.')
+	end
+
+	if ( command == 'track 0' ) then
+		CRHelper.trackCombatEvents = false
+		d('CRHelper: stopped tracking combat events.')
 	end
 
 end
