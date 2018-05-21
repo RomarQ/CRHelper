@@ -302,7 +302,7 @@ end
 ---- testing cave
 local t = {}
 
-function CRHelper.test( v )
+function CRHelper.test( v , id1, id2)
 
 	
 	--local messageParams = CSA:CreateMessageParams(CSA_CATEGORY_MAJOR_TEXT, SOUNDS.MESSAGE_BROADCAST)
@@ -367,7 +367,17 @@ function CRHelper.test( v )
 		LibPI:PostitionIndicatorShow()
 	end
 
-	CRHelper.EnableShockTimer(0, 10)
+	CRHelper.fireTargetUnit1 = id1
+	d(LUNIT:GetUnitTagForUnitId(CRHelper.fireTargetUnit1))
+	CRHelper.fireTargetUnit2 = id2
+
+	CRHelper.fireCount = CRHelper.roaringFlareDuration
+
+	EVENT_MANAGER:UnregisterForUpdate("FireTimer")
+	EVENT_MANAGER:RegisterForUpdate("FireTimer", 1000, CRHelper.FireTimerTick)
+
+	CRHelper.FireControlShow(CRHelper.FormatRoaringFlareMessage())
+	PlaySound(SOUNDS.DUEL_START)
 
 	--[[]
 	for i=1 , 9 , 1 do
@@ -414,7 +424,7 @@ function CRHelper.CombatEvent(eventCode, result, isError, abilityName, abilityGr
 	if (not CRHelper.trackCombatEvents or not CRHelper.monitoringFight) then return end
 	
 	-- Only track non player events (source type 0).
-	if (result == ACTION_RESULT_EFFECT_GAINED and sourceType == 0) then
+	if (( result == ACTION_RESULT_EFFECT_GAINED or result == ACTION_RESULT_BEGIN ) and sourceType == 0) then
 
 		-- skip trash events
 		if (combatEventsBlacklist[string.lower(GetAbilityName(abilityId))]) then return end
@@ -738,11 +748,37 @@ function CRHelper.FormatRoaringFlareMessage()
 	local tag1  = LUNIT:GetUnitTagForUnitId(CRHelper.fireTargetUnit1)
 	local tag2  = LUNIT:GetUnitTagForUnitId(CRHelper.fireTargetUnit2)
 
+	isDps1, isHealer1, isTank1 = GetGroupMemberRoles( tag1 )
+	isDps2, isHealer2, isTank2 = GetGroupMemberRoles( tag2 )
+
 	local name1 = AreUnitsEqual('player', tag1) and '|cFFFFFFYOU|r' or LUNIT:GetNameForUnitId(CRHelper.fireTargetUnit1)
 	local name2 = AreUnitsEqual('player', tag2) and '|cFFFFFFYOU|r' or LUNIT:GetNameForUnitId(CRHelper.fireTargetUnit2)
 
 	-- 2 players with roaring flare
 	if (CRHelper.fireTargetUnit1 > 0 and CRHelper.fireTargetUnit2 > 0) then
+		
+		-- Only Healer [Left] - Priority level 1
+		if ( not isDps2 and isHealer2 and not isTank2 ) then
+			local aux = name1
+			name1 = name2
+			name2 = aux
+		-- Only Dps and Healer [Right] - Priority level 1
+		elseif ( isDps1 and isHealer1 and not isTank1 ) then
+			local aux = name2
+			name2 = name1
+			name1 = aux
+		-- Only Healer and Tank [Left] - Priority level 2
+		elseif ( not isDps2 and isHealer2 and isTank2 ) then
+			local aux = name1
+			name1 = name2
+			name2 = aux
+		-- Only Dps and Tank [Right] - Priority level 2
+		elseif ( isDps1 and not isHealer1 and isTank1 ) then
+			local aux = name2
+			name2 = name1
+			name1 = aux
+		end
+
 		return zo_strformat(CRHelper.roaringFlareMessage2, name1, name2, CRHelper.fireCount)
 	-- 1 player with roaring flare
 	elseif (CRHelper.fireTargetUnit1 > 0 and CRHelper.fireTargetUnit2 == 0) then
