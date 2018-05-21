@@ -1,6 +1,6 @@
 CRHelper = {
 	name = "CRHelper",
-	version	= "1",
+	version	= "2",
 	varVersion = 2,
 	trialZoneId = 1051,
 	UI = WINDOW_MANAGER:CreateTopLevelWindow("CRHelperUI"),
@@ -63,7 +63,7 @@ CRHelper = {
 		roaringFlareId2 = 110431, -- secondary target
 		roaringFlareDuration = 6, -- number of seconds until the explosion
 		roaringFlareMessage = "<<1>> : |cFF4500<<2>>|r", -- name: <<1>> countdown: <<2>>
-		roaringFlareMessage2 = "<<1>> |cFF0000+|r <<2>> : |cFF4500<<3>>|r", -- name1: <<1>> name2: <<2>> countdown: <<3>>
+		roaringFlareMessage2 = "<<1>> |t64:64:esoui/art/buttons/large_leftarrow_up.dds|t |cFF4500<<3>>|r |t64:64:esoui/art/buttons/large_rightarrow_up.dds|t <<2>>", -- name1: <<1>> name2: <<2>> countdown: <<3>>
 		roaringFlareRadius = 0.0035, -- used by LibPositionIndicator to determine if a player is within fire aoe radius
 
 		fireTargetUnit1 = 0, -- unit id of the primary target
