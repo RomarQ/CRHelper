@@ -75,9 +75,9 @@ CRHelper = {
 
 	----- Hoarfrost (FROST) -----
 
-		hoarfrostId = 103695,
-		hoarfrostCastId = 103760,
-		hoarfrostSynergyId = 103697,
+		hoarfrostIds = {103695, 110516},
+		hoarfrostCastIds = {105151, 110466},
+		hoarfrostSynergyIds = {103697, 110525},
 		hoarfrostAoeId = 103765,
 		hoarfrostDuration = 6, -- how many seconds until synergy available
 		hoarfrostMessage = "DROP FROST: |c00BFFF<<1>>|r", -- countdown: <<1>>
@@ -102,7 +102,7 @@ CRHelper = {
 		voltaicCurrentIds = {103895, 103896, 110427},
 
 		-- Big shock aoe on a player (lasts 10 seconds)
-		voltaicOverloadIds = {87346} ,
+		voltaicOverloadIds = {87346},
 
 		shockStarted = false,
 		shockCount = 0,  -- Voltaic Overload counter
@@ -168,7 +168,7 @@ function CRHelper.OnAddOnLoaded(event, addonName)
 	-- The event fires each time *any* addon loads - but we only care about when our own addon loads.
 	if addonName ~= CRHelper.name then return end
 
-	EVENT_MANAGER:UnregisterForEvent(CRHelper.name, EVENT_ADD_ON_LOADED);
+	EVENT_MANAGER:UnregisterForEvent(CRHelper.name, EVENT_ADD_ON_LOADED)
 	CRHelper.Init()
 
 end
@@ -211,15 +211,12 @@ function CRHelper.PlayerActivated( eventCode, initial )
 
 			--CRHelper.StartOnScreenNotifications()
 
-			CRHelper.active = true;
+			CRHelper.active = true
 			CRHelper.StopMonitoringFight()
 
 			CRHelper:RegisterRoaringFlare()
-
 			CRHelper:RegisterHoarfrost()
-
 			CRHelper:RegisterVoltaicCurrent()
-			CRHelper:RegisterVoltaicOverload()
 
 			EVENT_MANAGER:RegisterForEvent("CloudrestWeaponSwap", EVENT_ACTIVE_WEAPON_PAIR_CHANGED, CRHelper.WeaponSwap )
 			EVENT_MANAGER:AddFilterForEvent("CloudrestWeaponSwap", EVENT_ACTIVE_WEAPON_PAIR_CHANGED, REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER )
@@ -278,13 +275,14 @@ function CRHelper.PlayerActivated( eventCode, initial )
 
 			-- UnRegister to all subscribed Events
 
+			CRHelper.UnregisterRoaringFlare()
+			CRHelper.UnregisterHoarfrost()
+			CRHelper.UnregisterVoltaicCurrent()
+
 			EVENT_MANAGER:UnregisterForEvent("CloudrestWeaponSwap", EVENT_ACTIVE_WEAPON_PAIR_CHANGED)
 			EVENT_MANAGER:UnregisterForEvent("ShadowSplashCast", EVENT_COMBAT_EVENT)
 			--EVENT_MANAGER:UnregisterForEvent("StartSRealmCD", EVENT_COMBAT_EVENT)
 			EVENT_MANAGER:UnregisterForEvent("BossReset", EVENT_COMBAT_EVENT)
-			EVENT_MANAGER:UnregisterForEvent("RoaringFlare", EVENT_COMBAT_EVENT)
-			EVENT_MANAGER:UnregisterForEvent("RoaringFlare2", EVENT_COMBAT_EVENT)
-			EVENT_MANAGER:UnregisterForEvent("HoarfrostSynergy", EVENT_COMBAT_EVENT)
 			EVENT_MANAGER:UnregisterForEvent("PortalCD", EVENT_COMBAT_EVENT)
 			EVENT_MANAGER:UnregisterForEvent("CrushingDarkness", EVENT_COMBAT_EVENT)
 			EVENT_MANAGER:UnregisterForEvent("BanefulMarkOnExecute", EVENT_COMBAT_EVENT)
@@ -292,16 +290,6 @@ function CRHelper.PlayerActivated( eventCode, initial )
 			EVENT_MANAGER:UnregisterForEvent("inCombat", EVENT_PLAYER_COMBAT_STATE )
 
 			EVENT_MANAGER:UnregisterForEvent("combatTip", EVENT_DISPLAY_ACTIVE_COMBAT_TIP )
-
-			-- UnRegister all subscribed VoltaicCurrent events
-			for i, id in ipairs(CRHelper.voltaicCurrentIds) do
-				EVENT_MANAGER:UnregisterForEvent("VoltaicCurrent" .. i, EVENT_COMBAT_EVENT)
-			end
-
-			-- UnRegister all subscribed VoltaicOverload events
-			for i, id in ipairs(CRHelper.voltaicOverloadIds) do
-				EVENT_MANAGER:UnregisterForEvent("VoltaicOverload" .. i, EVENT_EFFECT_CHANGED)
-			end
 
 			EVENT_MANAGER:UnregisterForUpdate(CRHelper.name)
 
@@ -439,7 +427,7 @@ function CRHelper.CombatEvent(eventCode, result, isError, abilityName, abilityGr
 
 		-- 10 seconds cooldown for each ability message
 		if (combatEventsBuffer[abilityId][targetUnitId] ~= nil and combatEventsBuffer[abilityId][targetUnitId] > t - 10) then return end
-		
+
 		local targetUnitTag = LUNIT:GetUnitTagForUnitId(targetUnitId)
 		local targetName = LUNIT:GetNameForUnitId(targetUnitId)
 		local targetColor = "FFFFFF"
@@ -458,6 +446,10 @@ function CRHelper.CombatEvent(eventCode, result, isError, abilityName, abilityGr
 				targetColor = "00BFFF"
 				if (not combatEventsWhitelist[string.lower(GetAbilityName(abilityId))] and not combatEventsList[abilityId]) then return end -- the only way to remove other players abilities from output...
 
+			else
+
+				return
+				
 			end
 
 			d(zo_strformat("[<<1>>] <<2>> - |cFF2200<<3>>|r - |cCCCCCC<<4>>|r", abilityId, "|c" .. targetColor .. targetName .. "|r",  GetAbilityName(abilityId), t - combatStartedFrameTime))
@@ -733,6 +725,13 @@ function CRHelper:RegisterRoaringFlare()
 
 end
 
+function CRHelper:UnregisterRoaringFlare()
+
+	EVENT_MANAGER:UnregisterForEvent("RoaringFlare", EVENT_COMBAT_EVENT)
+	EVENT_MANAGER:UnregisterForEvent("RoaringFlare2", EVENT_COMBAT_EVENT)
+
+end
+
 -- Formats and returns one name or concatinates two names into one string
 function CRHelper.FormatRoaringFlareMessage()
 
@@ -872,16 +871,22 @@ end
 function CRHelper:RegisterHoarfrost()
 
 	-- FROST INC
-	EVENT_MANAGER:RegisterForEvent("HoarfrostCast", EVENT_COMBAT_EVENT, self.HoarfrostCast)
-	EVENT_MANAGER:AddFilterForEvent("HoarfrostCast", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, self.hoarfrostCastId)
+	for i, id in ipairs(self.hoarfrostCastIds) do
+		EVENT_MANAGER:RegisterForEvent("HoarfrostCast" .. i, EVENT_COMBAT_EVENT, self.HoarfrostCast)
+		EVENT_MANAGER:AddFilterForEvent("HoarfrostCast" .. i, EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, id)
+	end
 
 	-- COUNTDOWN
-	EVENT_MANAGER:RegisterForEvent("Hoarfrost", EVENT_COMBAT_EVENT, self.Hoarfrost)
-	EVENT_MANAGER:AddFilterForEvent("Hoarfrost", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, self.hoarfrostId)
+	for i, id in ipairs(self.hoarfrostIds) do
+		EVENT_MANAGER:RegisterForEvent("Hoarfrost" .. i, EVENT_COMBAT_EVENT, self.Hoarfrost)
+		EVENT_MANAGER:AddFilterForEvent("Hoarfrost" .. i, EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, id)
+	end
 
 	-- SYNERGY AVAILABLE
-	EVENT_MANAGER:RegisterForEvent("HoarfrostSynergy", EVENT_COMBAT_EVENT, self.HoarfrostSynergy)
-	EVENT_MANAGER:AddFilterForEvent("HoarfrostSynergy", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, self.hoarfrostSynergyId)
+	for i, id in ipairs(self.hoarfrostSynergyIds) do
+		EVENT_MANAGER:RegisterForEvent("HoarfrostSynergy" .. i, EVENT_COMBAT_EVENT, self.HoarfrostSynergy)
+		EVENT_MANAGER:AddFilterForEvent("HoarfrostSynergy" .. i, EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, id)
+	end
 	
 	-- AOE
 	EVENT_MANAGER:RegisterForEvent("HoarfrostAoe", EVENT_COMBAT_EVENT, self.HoarfrostAoe)
@@ -889,11 +894,26 @@ function CRHelper:RegisterHoarfrost()
 
 end
 
+function CRHelper:UnregisterHoarfrost()
+
+	for i, id in ipairs(self.hoarfrostCastIds) do
+		EVENT_MANAGER:UnregisterForEvent("HoarfrostCast" .. i, EVENT_COMBAT_EVENT)
+	end
+	for i, id in ipairs(self.hoarfrostIds) do
+		EVENT_MANAGER:UnregisterForEvent("Hoarfrost" .. i, EVENT_COMBAT_EVENT)
+	end
+	for i, id in ipairs(self.hoarfrostSynergyIds) do
+		EVENT_MANAGER:UnregisterForEvent("HoarfrostSynergy" .. i, EVENT_COMBAT_EVENT)
+	end
+	EVENT_MANAGER:UnregisterForEvent("HoarfrostAoe", EVENT_COMBAT_EVENT)
+
+end
+
 function CRHelper.HoarfrostCast(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
 
 	if (not CRHelper.savedVariables.trackHoarfrost or targetType ~= COMBAT_UNIT_TYPE_PLAYER) then return end
 
-	if (result == ACTION_RESULT_BEGIN) then
+	if (result == ACTION_RESULT_EFFECT_GAINED) then
 
 		CRHelper.FrostControlShow("FROST INC")
 		PlaySound(SOUNDS.NEW_MAIL)
@@ -1081,20 +1101,30 @@ end
 
 function CRHelper:RegisterVoltaicCurrent()
 
-	-- Register VoltaicCurrent event handler for each possible id
+	-- SHOCK INC
 	for i, id in ipairs(self.voltaicCurrentIds) do
 		EVENT_MANAGER:RegisterForEvent("VoltaicCurrent" .. i, EVENT_COMBAT_EVENT, self.VoltaicCurrent)
 		EVENT_MANAGER:AddFilterForEvent("VoltaicCurrent" .. i, EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, id)
 	end
 
-end
-
-function CRHelper:RegisterVoltaicOverload()
-
-	-- Register VoltaicOverload event handler for each possible id
+	-- DEBUFF
 	for i, id in ipairs(self.voltaicOverloadIds) do
 		EVENT_MANAGER:RegisterForEvent("VoltaicOverload" .. i, EVENT_EFFECT_CHANGED, self.VoltaicOverload)
 		EVENT_MANAGER:AddFilterForEvent("VoltaicOverload" .. i, EVENT_EFFECT_CHANGED, REGISTER_FILTER_ABILITY_ID, id)
+	end
+
+end
+
+function CRHelper:UnregisterVoltaicCurrent()
+
+	-- SHOCK INC
+	for i, id in ipairs(self.voltaicCurrentIds) do
+		EVENT_MANAGER:UnregisterForEvent("VoltaicCurrent" .. i, EVENT_COMBAT_EVENT)
+	end
+
+	-- DEBUFF
+	for i, id in ipairs(self.voltaicOverloadIds) do
+		EVENT_MANAGER:UnregisterForEvent("VoltaicOverload" .. i, EVENT_EFFECT_CHANGED)
 	end
 
 end
