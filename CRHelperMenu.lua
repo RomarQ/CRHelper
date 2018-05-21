@@ -233,6 +233,30 @@ function CRHelper.buildMenu( savedVars )
 			width = "full",
 			disabled = function() return not CRHelper.savedVariables.positionIndicatorEnabled end,
 		},
+		{
+			type = "header",
+			name = "Roaring Flare Execute Setup"
+		},
+		{
+			type = "description",
+			title = "Healer Left\n",
+			text = "|t64:64:esoui/art/lfg/lfg_healer_up_64.dds|t"
+		},
+		{
+			type = "description",
+			title = "Healer Right\n",
+			text = "|t64:64:esoui/art/lfg/lfg_healer_up_64.dds|t |t64:64:esoui/art/lfg/lfg_dps_up_64.dds|t"
+		},
+		{
+			type = "description",
+			title = "Tank Right\n",
+			text = "|t64:64:esoui/art/lfg/lfg_tank_up_64.dds|t |t64:64:esoui/art/lfg/lfg_dps_up_64.dds|t"
+		},
+		{
+			type = "description",
+			title = "Tank Left\n",
+			text = "|t64:64:esoui/art/lfg/lfg_tank_up_64.dds|t |t64:64:esoui/art/lfg/lfg_healer_up_64.dds|t"
+		}
 	}
 
     LAM:RegisterOptionControls(CRHelper.name.."Options", options)
