@@ -275,9 +275,9 @@ function CRHelper.PlayerActivated( eventCode, initial )
 
 			-- UnRegister to all subscribed Events
 
-			CRHelper.UnregisterRoaringFlare()
-			CRHelper.UnregisterHoarfrost()
-			CRHelper.UnregisterVoltaicCurrent()
+			CRHelper:UnregisterRoaringFlare()
+			CRHelper:UnregisterHoarfrost()
+			CRHelper:UnregisterVoltaicCurrent()
 
 			EVENT_MANAGER:UnregisterForEvent("CloudrestWeaponSwap", EVENT_ACTIVE_WEAPON_PAIR_CHANGED)
 			EVENT_MANAGER:UnregisterForEvent("ShadowSplashCast", EVENT_COMBAT_EVENT)
