@@ -1,6 +1,6 @@
 CRHelper = {
 	name = "CRHelper",
-	version	= "2",
+	version	= "2.1.0",
 	varVersion = 2,
 	trialZoneId = 1051,
 	UI = WINDOW_MANAGER:CreateTopLevelWindow("CRHelperUI"),
@@ -15,6 +15,9 @@ CRHelper = {
 		
 		trackVoltaicOverload = true,
 		VoltaicOverloadColor = {255, 255, 255},
+		voltaicOverloadScreenGlow = true,
+		voltaicOverloadScreenGlowColor = {1, 0.3, 1},
+		voltaicOverloadScreenGlowSize = 0.15,
 
 		trackCrushingDarkness = true,
 		trackCrushingDarknessTimer = true,
@@ -143,6 +146,8 @@ CRHelper = {
 
 LUNIT = LibStub:GetLibrary("LibUnits")
 LibPI = LibStub:GetLibrary("LibPositionIndicator")
+LibGlow = LibStub:GetLibrary("LibScreenGlow")
+
 local CSA = CENTER_SCREEN_ANNOUNCE
 
 local combatStartedFrameTime = 0
@@ -180,6 +185,10 @@ function CRHelper.Init()
 
 	-- Create Indicator control to make it accessible in menu
 	LibPI:CreateTexture()
+	
+	-- Initialize screen glow
+	LibGlow:SetGlowSize(CRHelper.savedVariables.voltaicOverloadScreenGlowSize)
+	LibGlow:SetGlowColor(unpack(CRHelper.savedVariables.voltaicOverloadScreenGlowColor))
 
 	-- Builds a Settings menu on addon settings tab
 	CRHelper:buildMenu(CRHelper.savedVariables)
@@ -193,7 +202,6 @@ function CRHelper.Init()
 	EVENT_MANAGER:RegisterForEvent( CRHelper.name, EVENT_PLAYER_ACTIVATED, CRHelper.PlayerActivated );
 
 end
-
 
 function CRHelper.PlayerActivated( eventCode, initial )
 	if ( GetZoneId(GetUnitZoneIndex("player")) == CRHelper.trialZoneId ) then
@@ -1195,6 +1203,8 @@ function CRHelper.VoltaicOverload(eventCode, changeType, effectSlot, effectName,
 		CRShock_Label:SetText(string.format("|c98FB98%s|r", "CAN SWAP"))
 		CRHelper.FadeOutControl(CRShock, 1000)
 
+		LibGlow:HideGlow()
+
     elseif (changeType == EFFECT_RESULT_GAINED) or (changeType == EFFECT_RESULT_UPDATED) then
 		CRHelper.shockStarted = true
 		CRHelper.swapped = false
@@ -1208,6 +1218,8 @@ function CRHelper.WeaponSwap()
 	if (CRHelper.shockStarted and not CRHelper.swapped) then
 		CRHelper.swapped = true
 		CRHelper.ShockControlShow("NO SWAP: " .. string.format("%01d", CRHelper.shockCount))
+
+		if (CRHelper.savedVariables.voltaicOverloadScreenGlow) then LibGlow:ShowGlow() end
 	end
 
 end
@@ -1368,6 +1380,7 @@ end
 
 -- Gets the saved positions and applies them
 function CRHelper:RestorePosition()
+
 	local shockLeft = self.savedVariables.shockLeft
 	local shockTop = self.savedVariables.shockTop
 
@@ -1405,15 +1418,16 @@ function CRHelper:RestorePosition()
 		CRInterrupt:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, interruptLeft, interruptTop)
 	end
 
-	if ( frameLeft and frameTop ) then
-		CRHelperFrame:ClearAnchors();
-		CRHelperFrame:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, frameLeft, frameTop);
+	if (frameLeft and frameTop) then
+		CRHelperFrame:ClearAnchors()
+		CRHelperFrame:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, frameLeft, frameTop)
 	end
 
 	-- Restore font
 	if (fontSize == 'small' or fontSize == 'medium' or fontSize == 'large') then
 		CRHelper:setFontSize(fontSize)
 	end
+
 end
 
 function CRHelper:setFontSize(fontSize)
@@ -1447,8 +1461,10 @@ function CRHelper:unlockUI()
 	CRInterrupt_Warning:SetText("Interrupt the Hypnotard!")
 
 	CRHelperFrame:SetHidden(false)
-	CRHelperFrame_PortalTimer:SetText("Timers")
+	CRHelperFrame_PortalTimer:SetText("Useful Timers...")
 	CRHelperFrame_PortalTimer:SetHidden(false)
+
+	if (CRHelper.savedVariables.voltaicOverloadScreenGlow) then LibGlow:ShowGlow() end
 
 end
 
@@ -1464,6 +1480,8 @@ function CRHelper:lockUI()
 	CRHelperFrame:SetHidden(true)
 	CRHelperFrame_PortalTimer:SetText("")
 	CRHelperFrame_PortalTimer:SetHidden(true)
+
+	LibGlow:HideGlow()
 
 end
 

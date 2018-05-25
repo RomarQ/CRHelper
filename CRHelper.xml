@@ -3,6 +3,7 @@
 
     <TopLevelControl name="CRHelperFrame" resizeToFitDescendents="true" mouseEnabled="true" movable="true" clampedToScreen="true" hidden="true">
       <Dimensions x="310" y="80" />
+	  <Anchor point="LEFT" relativeTo="GuiRoot" relativePoint="BOTTOMLEFT" offsetX="10" offsetY="0" />
 
       <OnMoveStop>
         CRHelper.OnFrameMoveStop()

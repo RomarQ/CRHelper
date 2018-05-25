@@ -1,4 +1,3 @@
-
 function CRHelper.buildMenu( savedVars )
 	local LAM = LibStub('LibAddonMenu-2.0')
 	local LibPI = LibStub:GetLibrary("LibPositionIndicator")
@@ -14,7 +13,7 @@ function CRHelper.buildMenu( savedVars )
         name = CRHelper.name,
         displayName = 'Cloudrest Helper',
         author = "@andy.s & @RoMarQ",
-        version = "v" .. CRHelper.version,
+        version = CRHelper.version,
         registerForRefresh = true
     }
 
@@ -28,7 +27,7 @@ function CRHelper.buildMenu( savedVars )
 		{
 			type = "checkbox",
 			name = "UI Locked",
-			tooltip = "Allows for positioning of UI",
+			tooltip = "Allows to reposition notifications",
 			getFunc = function() return true end,
 			setFunc = function(value)
 				if not value then
@@ -148,7 +147,7 @@ function CRHelper.buildMenu( savedVars )
 		},
 		{
 			type = "header",
-			name = "|c98FB98Timers|r"
+			name = "Timers"
 		},
 		{
 			type = "checkbox",
@@ -170,7 +169,7 @@ function CRHelper.buildMenu( savedVars )
 		},
 		{
 			type = "checkbox",
-			name = "Baneful Mark ( on execute )",
+			name = "Baneful Mark (on execute)",
             default = settings.trackBanefulMarkTimer,
 			getFunc = function() return CRHelper.savedVariables.trackBanefulMarkTimer end,
 			setFunc = function(value)
@@ -233,9 +232,62 @@ function CRHelper.buildMenu( savedVars )
 			width = "full",
 			disabled = function() return not CRHelper.savedVariables.positionIndicatorEnabled end,
 		},
+		
+		--
+		-- Voltaic Overload Options
+		--
+
+		{
+			type = "header",
+			name = "Voltaic Overload Options"
+		},
+		{
+			type = "checkbox",
+			name = "Enable Screen Glow",
+			tooltip = "Adds an additional screen effect while you have Voltaic Overload debuff and shouldn't swap weapons",
+            default = settings.voltaicOverloadScreenGlow,
+			getFunc = function() return CRHelper.savedVariables.voltaicOverloadScreenGlow end,
+			setFunc = function(value)
+				CRHelper.savedVariables.voltaicOverloadScreenGlow = value
+			end
+		},
+		{
+			type = "colorpicker",
+			name = "Screen Glow Color",
+			default = ZO_ColorDef:New(unpack(CRHelper.defaultSettings.voltaicOverloadScreenGlowColor)),
+			getFunc = function() return unpack(CRHelper.savedVariables.voltaicOverloadScreenGlowColor) end,
+			setFunc = function(r, g, b)
+				SetSavedVars("voltaicOverloadScreenGlowColor", {r, g, b})
+				LibGlow:SetGlowColor(r, g, b)
+			end,
+			width = "full",
+			disabled = function() return not CRHelper.savedVariables.voltaicOverloadScreenGlowColor end,
+		},
+		{
+			type = "slider",
+			name = "Screen Glow Size",
+			min = 0.1,
+			max = 0.5,
+			step = 0.01,
+			decimals = 2,
+			clampInput = true,
+			default = settings.voltaicOverloadScreenGlowSize,
+			getFunc = function() return CRHelper.savedVariables.voltaicOverloadScreenGlowSize end,
+			setFunc = function(value)
+				SetSavedVars("voltaicOverloadScreenGlowSize", value)
+				LibGlow:SetGlowSize(value)
+			end,
+			width = "full",
+			disabled = function() return not CRHelper.savedVariables.voltaicOverloadScreenGlowSize end,
+		},
+
 		{
 			type = "header",
 			name = "Roaring Flare Execute Setup"
+		},
+		{
+			type = "description",
+			text = "Players with fixed positions on execute should set the following roles:"
 		},
 		{
 			type = "description",
