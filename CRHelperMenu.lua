@@ -10,8 +10,8 @@ function CRHelper.buildMenu( savedVars )
 
     local panelInfo = {
         type = 'panel',
-        name = CRHelper.name,
-        displayName = 'Cloudrest Helper',
+        name = 'Immersive Fishing',
+        displayName = 'Immersive Fishing',
         author = "@andy.s & @RoMarQ",
         version = CRHelper.version,
         registerForRefresh = true

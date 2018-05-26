@@ -1,6 +1,6 @@
-## Title: Cloudrest Helper
+## Title: Immersive Fishing
 ## APIVersion: 100023
-## Author: |cff0000HODOR|r
+## Author: ZOS_GinaBruno
 ## SavedVariables: CRHelperSavedVariables
 ## OptionalDependsOn: LibAddonMenu-2.0
 
