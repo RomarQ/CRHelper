@@ -147,6 +147,54 @@ function CRHelper.buildMenu( savedVars )
 		},
 		{
 			type = "header",
+			name = "Central Alerts"
+		},
+		{
+			type = "description",
+			text = "|cFF0000Important alerts in the middle of the screen. Disable at your own risk.|r"
+		},
+		{
+			type = "checkbox",
+			name = "Baneful Barb",
+			tooltip = "Debuff from a spider",
+            default = settings.trackBanefulBarb,
+			getFunc = function() return CRHelper.savedVariables.trackBanefulBarb end,
+			setFunc = function(value)
+				CRHelper.savedVariables.trackBanefulBarb = value
+			end
+		},
+		{
+			type = "checkbox",
+			name = "Corpulence",
+			tooltip = "Heavy Attack by a spider",
+            default = settings.trackCorpulence,
+			getFunc = function() return CRHelper.savedVariables.trackCorpulence end,
+			setFunc = function(value)
+				CRHelper.savedVariables.trackCorpulence = value
+			end
+		},
+		{
+			type = "checkbox",
+			name = "Nocturnals Favor",
+			tooltip = "Pokeball",
+            default = settings.trackNocturnalsFavor,
+			getFunc = function() return CRHelper.savedVariables.trackNocturnalsFavor end,
+			setFunc = function(value)
+				CRHelper.savedVariables.trackNocturnalsFavor = value
+			end
+		},
+		{
+			type = "checkbox",
+			name = "Razorthorn",
+			tooltip = "Root from a tentacle",
+            default = settings.trackRazorthorn,
+			getFunc = function() return CRHelper.savedVariables.trackRazorthorn end,
+			setFunc = function(value)
+				CRHelper.savedVariables.trackRazorthorn = value
+			end
+		},
+		{
+			type = "header",
 			name = "Timers"
 		},
 		{

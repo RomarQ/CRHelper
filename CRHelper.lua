@@ -1,6 +1,6 @@
 CRHelper = {
 	name = "CRHelper",
-	version	= "2.1.0",
+	version	= "2.2.0",
 	varVersion = 2,
 	trialZoneId = 1051,
 	UI = WINDOW_MANAGER:CreateTopLevelWindow("CRHelperUI"),
@@ -18,6 +18,11 @@ CRHelper = {
 		voltaicOverloadScreenGlow = true,
 		voltaicOverloadScreenGlowColor = {1, 0.3, 1},
 		voltaicOverloadScreenGlowSize = 0.15,
+
+		trackBanefulBarb = true,
+		trackCorpulence = true,
+		trackNocturnalsFavor = true,
+		trackRazorthorn = true,
 
 		trackCrushingDarkness = true,
 		trackCrushingDarknessTimer = true,
@@ -59,6 +64,8 @@ CRHelper = {
 
 	----- /Portal Phase (Shadow Realm) -----
 
+		nocturnalsFavorCount = 0,
+		corpulenceCount = 0,
 
 	----- ROARING FLARE (FIRE) -----
 
@@ -203,11 +210,13 @@ function CRHelper.Init()
 
 end
 
-function CRHelper.PlayerActivated( eventCode, initial )
-	if ( GetZoneId(GetUnitZoneIndex("player")) == CRHelper.trialZoneId ) then
-		if ( not CRHelper.active ) then
+function CRHelper.PlayerActivated(eventCode, initial)
 
-			d("Inside Cloudrest, CRHelper is now enabled!")
+	if (GetZoneId(GetUnitZoneIndex("player")) == CRHelper.trialZoneId) then
+	
+		if (not CRHelper.active) then
+
+			--d("Inside Cloudrest, CRHelper is now enabled!")
 
 			if ( GetSetting(SETTING_TYPE_COMBAT, SETTING_TYPE_ACTIVE_COMBAT_TIP) ~= ACT_SETTING_ALWAYS ) then
 				SetSetting( SETTING_TYPE_COMBAT , SETTING_TYPE_ACTIVE_COMBAT_TIP , tostring(ACT_SETTING_ALWAYS))
@@ -228,6 +237,22 @@ function CRHelper.PlayerActivated( eventCode, initial )
 
 			EVENT_MANAGER:RegisterForEvent("CloudrestWeaponSwap", EVENT_ACTIVE_WEAPON_PAIR_CHANGED, CRHelper.WeaponSwap )
 			EVENT_MANAGER:AddFilterForEvent("CloudrestWeaponSwap", EVENT_ACTIVE_WEAPON_PAIR_CHANGED, REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER )
+			
+			-- Baneful Mark cast from a spider
+			EVENT_MANAGER:RegisterForEvent("BanefulBarb", EVENT_COMBAT_EVENT, CRHelper.BanefulBarb)
+			EVENT_MANAGER:AddFilterForEvent("BanefulBarb", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, 105975)
+
+			-- Spider's Heavy Attack
+			EVENT_MANAGER:RegisterForEvent("Corpulence", EVENT_COMBAT_EVENT, CRHelper.Corpulence)
+			EVENT_MANAGER:AddFilterForEvent("Corpulence", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, 105968)
+			
+			-- Main Boss pokeball
+			EVENT_MANAGER:RegisterForEvent("NocturnalsFavor", EVENT_COMBAT_EVENT, CRHelper.NocturnalsFavor)
+			EVENT_MANAGER:AddFilterForEvent("NocturnalsFavor", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, 104535)
+			
+			-- Tentacle Root
+			EVENT_MANAGER:RegisterForEvent("Razorthorn", EVENT_COMBAT_EVENT, CRHelper.Razorthorn)
+			EVENT_MANAGER:AddFilterForEvent("Razorthorn", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, 106656)
 
 			-- Main Boss Interrupt Mechanic
 			EVENT_MANAGER:RegisterForEvent("ShadowSplashCast", EVENT_COMBAT_EVENT, CRHelper.ShadowSplashCast)
@@ -265,17 +290,19 @@ function CRHelper.PlayerActivated( eventCode, initial )
 
 			EVENT_MANAGER:RegisterForEvent("inCombat", EVENT_PLAYER_COMBAT_STATE, CRHelper.PlayerCombatState )
 
-			-- Register for any combat Tip
+			-- Register for any combat tip
 			EVENT_MANAGER:RegisterForEvent("combatTip", EVENT_DISPLAY_ACTIVE_COMBAT_TIP, CRHelper.combatTip )
 
 			EVENT_MANAGER:RegisterForEvent("CloudrestCombatEvent", EVENT_COMBAT_EVENT, CRHelper.CombatEvent)
 			EVENT_MANAGER:AddFilterForEvent("CloudrestCombatEvent", EVENT_COMBAT_EVENT, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_GAINED)
 
 		end
-	else
-		if ( CRHelper.active ) then
 
-			d("Outside Cloudrest, CRHelper is now disabled!")
+	else
+
+		if (CRHelper.active) then
+
+			--d("Outside Cloudrest, CRHelper is now disabled!")
 
 			CRHelper.active = false
 			CRHelper.StopMonitoringFight()
@@ -288,6 +315,10 @@ function CRHelper.PlayerActivated( eventCode, initial )
 			CRHelper:UnregisterVoltaicCurrent()
 
 			EVENT_MANAGER:UnregisterForEvent("CloudrestWeaponSwap", EVENT_ACTIVE_WEAPON_PAIR_CHANGED)
+			EVENT_MANAGER:UnregisterForEvent("BanefulBarb", EVENT_COMBAT_EVENT)
+			EVENT_MANAGER:UnregisterForEvent("Corpulence", EVENT_COMBAT_EVENT)
+			EVENT_MANAGER:UnregisterForEvent("NocturnalsFavor", EVENT_COMBAT_EVENT)
+			EVENT_MANAGER:UnregisterForEvent("Razorthorn", EVENT_COMBAT_EVENT)
 			EVENT_MANAGER:UnregisterForEvent("ShadowSplashCast", EVENT_COMBAT_EVENT)
 			--EVENT_MANAGER:UnregisterForEvent("StartSRealmCD", EVENT_COMBAT_EVENT)
 			EVENT_MANAGER:UnregisterForEvent("BossReset", EVENT_COMBAT_EVENT)
@@ -432,7 +463,7 @@ function CRHelper.CombatEvent(eventCode, result, isError, abilityName, abilityGr
 	if (not CRHelper.trackCombatEvents or not CRHelper.monitoringFight) then return end
 	
 	-- Only track non player events (source type 0).
-	if (( result == ACTION_RESULT_EFFECT_GAINED or result == ACTION_RESULT_BEGIN ) and sourceType == 0) then
+	if ((result == ACTION_RESULT_EFFECT_GAINED or result == ACTION_RESULT_BEGIN) and sourceType == 0) then
 
 		-- skip trash events
 		if (combatEventsBlacklist[string.lower(GetAbilityName(abilityId))]) then return end
@@ -480,7 +511,7 @@ end
 -------------------
 -- Handles important combat tips during Z'Maja boss fight
 -------------------
-function CRHelper.combatTip( eventCode , activeCombatTipId )
+function CRHelper.combatTip(eventCode , activeCombatTipId)
 
 	local name, tipText, _icon = GetActiveCombatTipInfo(activeCombatTipId)
 
@@ -539,6 +570,117 @@ function CRHelper.StopMonitoringFight( )
 	--CRHelper.inExecute = false
 
 	combatStartedFrameTime = 0
+
+end
+
+-- Baneful Mark cast by a spider
+function CRHelper.BanefulBarb(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
+
+	if (not CRHelper.savedVariables.trackBanefulBarb or targetType ~= COMBAT_UNIT_TYPE_PLAYER) then return end
+
+	if (result == ACTION_RESULT_BEGIN) then
+
+		CRReticle_Label:SetText("MARK")
+		CRReticle_Label:SetColor(1, 0, 0)
+		CRReticle:SetHidden(false)
+		PlaySound(SOUNDS.CHAMPION_POINTS_COMMITTED)
+
+		zo_callLater(function() CRReticle:SetHidden(true) end , 1500)
+
+	end
+
+end
+
+-- Spider's heavy attack
+function CRHelper.Corpulence(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
+
+	if (not CRHelper.savedVariables.trackCorpulence or targetType ~= COMBAT_UNIT_TYPE_PLAYER) then return end
+
+	if (result == ACTION_RESULT_BEGIN) then
+
+		CRHelper.corpulenceCount = 1.7
+
+		CRReticle_Label:SetText(string.format("HEAVY: |cFF0000%.1f|r", CRHelper.corpulenceCount))
+		CRReticle_Label:SetColor(1, 0.25, 1)
+		CRReticle:SetHidden(false)
+		PlaySound(SOUNDS.CHAMPION_POINTS_COMMITTED)
+
+		EVENT_MANAGER:UnregisterForUpdate("CorpulenceTimer")
+		EVENT_MANAGER:RegisterForUpdate("CorpulenceTimer", 100, CRHelper.CorpulenceTick)
+
+	end
+
+end
+
+function CRHelper.CorpulenceTick()
+
+	CRHelper.corpulenceCount = CRHelper.corpulenceCount - 0.1
+
+	if (CRHelper.corpulenceCount <= -0.1) then
+		EVENT_MANAGER:UnregisterForUpdate("CorpulenceTimer")
+		CRReticle:SetHidden(true)
+	else
+		local color = CRHelper.corpulenceCount >= 0.5 and "|cFF8C00%.1f|r" or "|cFF0000%.1f|r"
+		CRReticle_Label:SetText(string.format("HEAVY: " .. color, CRHelper.corpulenceCount < 0 and 0 or CRHelper.corpulenceCount))
+		CRReticle_Label:SetColor(1, 0.25, 1)
+		CRReticle:SetHidden(false)
+	end
+
+end
+
+-- Main Boss Pokeball
+function CRHelper.NocturnalsFavor(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
+
+	if (not CRHelper.savedVariables.trackNocturnalsFavor or targetType ~= COMBAT_UNIT_TYPE_PLAYER) then return end
+	
+	if (result == ACTION_RESULT_BEGIN) then
+
+		CRHelper.nocturnalsFavorCount = 2.2
+
+		CRReticle_Label:SetText(string.format("BALL: |cFF0000%.1f|r", CRHelper.nocturnalsFavorCount))
+		CRReticle_Label:SetColor(1, 0.25, 1)
+		CRReticle:SetHidden(false)
+		PlaySound(SOUNDS.CHAMPION_POINTS_COMMITTED)
+
+		EVENT_MANAGER:UnregisterForUpdate("NocturnalsFavorTimer")
+		EVENT_MANAGER:RegisterForUpdate("NocturnalsFavorTimer", 100, CRHelper.NocturnalsFavorTick)
+
+	end
+
+end
+
+function CRHelper.NocturnalsFavorTick()
+
+	CRHelper.nocturnalsFavorCount = CRHelper.nocturnalsFavorCount - 0.1
+
+	if (CRHelper.nocturnalsFavorCount <= -0.1) then
+		EVENT_MANAGER:UnregisterForUpdate("NocturnalsFavorTimer")
+		CRReticle:SetHidden(true)
+	else
+		CRReticle_Label:SetText(string.format("BALL: |cFF0000%.1f|r", CRHelper.nocturnalsFavorCount < 0 and 0 or CRHelper.nocturnalsFavorCount))
+		CRReticle_Label:SetColor(1, 0.25, 1)
+		CRReticle:SetHidden(false)
+	end
+
+end
+
+-- Root by Tentacle
+function CRHelper.Razorthorn(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
+
+	if (not CRHelper.savedVariables.trackRazorthorn or targetType ~= COMBAT_UNIT_TYPE_PLAYER) then return end
+
+	if (result == ACTION_RESULT_EFFECT_GAINED) then
+
+		CRReticle_Label:SetText("ROOTED")
+		CRReticle_Label:SetColor(1, 0, 0)
+		CRReticle:SetHidden(false)
+		PlaySound(SOUNDS.CHAMPION_POINTS_COMMITTED)
+
+	elseif (result == ACTION_RESULT_EFFECT_FADED) then
+
+		CRReticle:SetHidden(true)
+
+	end
 
 end
 
