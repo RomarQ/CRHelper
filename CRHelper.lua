@@ -44,12 +44,9 @@ CRHelper = {
 		active = false,	-- true when inside Cloudrest
 		monitoringFight = false, -- true when inCombat against Z'Maja
 		trackCombatEvents = false, -- when enabled, all combat events are posted into chat
-		--inExecute = false,
 
-		executeStartId = 107991,
 	----- Portal Phase (Shadow Realm) -----
 
-		Start_SRealm_CD = 105890,
 		BossReset = 107478,
 		PortalSpawn = 103946,
 		PortalSpawnTipId = 100,
@@ -218,15 +215,12 @@ function CRHelper.PlayerActivated(eventCode, initial)
 
 			--d("Inside Cloudrest, CRHelper is now enabled!")
 
+			--SetSetting(*[SettingSystemType|#SettingSystemType]* _system_, *integer* _settingId_, *string* _value_, *[SetOptions|#SetOptions]* _setOptions_)
 			if ( GetSetting(SETTING_TYPE_COMBAT, SETTING_TYPE_ACTIVE_COMBAT_TIP) ~= ACT_SETTING_ALWAYS ) then
 				SetSetting( SETTING_TYPE_COMBAT , SETTING_TYPE_ACTIVE_COMBAT_TIP , tostring(ACT_SETTING_ALWAYS))
 				ApplySettings()
 				RefreshSettings()
 			end
-
-			--SetSetting(*[SettingSystemType|#SettingSystemType]* _system_, *integer* _settingId_, *string* _value_, *[SetOptions|#SetOptions]* _setOptions_)
-
-			--CRHelper.StartOnScreenNotifications()
 
 			CRHelper.active = true
 			CRHelper.StopMonitoringFight()
@@ -262,9 +256,9 @@ function CRHelper.PlayerActivated(eventCode, initial)
 			EVENT_MANAGER:RegisterForEvent("OrbSpawn", EVENT_COMBAT_EVENT, CRHelper.OrbSpawn )
 			EVENT_MANAGER:AddFilterForEvent("OrbSpawn", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, CRHelper.OrbSpawnId )
 
-			-- Register for when portal cooldown starts
-			--EVENT_MANAGER:RegisterForEvent("StartSRealmCD", EVENT_COMBAT_EVENT, CRHelper.startSRealmCoolDown )
-			--EVENT_MANAGER:AddFilterForEvent("StartSRealmCD", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID , CRHelper.Start_SRealm_CD )
+			-- Register for when portal opens
+			EVENT_MANAGER:RegisterForEvent("SRealmOpen", EVENT_COMBAT_EVENT, CRHelper.SRealmOpen )
+			EVENT_MANAGER:AddFilterForEvent("SRealmOpen", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID , CRHelper.PortalSpawn )
 
 			-- Register for BossReset
 			EVENT_MANAGER:RegisterForEvent("BossReset", EVENT_COMBAT_EVENT, CRHelper.ResetPortalTimer )
@@ -285,9 +279,6 @@ function CRHelper.PlayerActivated(eventCode, initial)
 			EVENT_MANAGER:RegisterForEvent("BanefulMarkOnExecute", EVENT_COMBAT_EVENT, CRHelper.BanefulMarkOnExecute )
 			EVENT_MANAGER:AddFilterForEvent("BanefulMarkOnExecute", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, CRHelper.BanefulMarkOnExecuteId )
 
-			--EVENT_MANAGER:RegisterForEvent("inExecute", EVENT_COMBAT_EVENT, function() CRHelper.inExecute = true end )
-			--EVENT_MANAGER:AddFilterForEvent("inExecute", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, CRHelper.executeStartId )
-
 			EVENT_MANAGER:RegisterForEvent("inCombat", EVENT_PLAYER_COMBAT_STATE, CRHelper.PlayerCombatState )
 
 			-- Register for any combat tip
@@ -295,6 +286,8 @@ function CRHelper.PlayerActivated(eventCode, initial)
 
 			EVENT_MANAGER:RegisterForEvent("CloudrestCombatEvent", EVENT_COMBAT_EVENT, CRHelper.CombatEvent)
 			EVENT_MANAGER:AddFilterForEvent("CloudrestCombatEvent", EVENT_COMBAT_EVENT, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_GAINED)
+			EVENT_MANAGER:AddFilterForEvent("CloudrestCombatEvent", EVENT_COMBAT_EVENT, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_GAINED)
+			EVENT_MANAGER:AddFilterForEvent("CloudrestCombatEvent", EVENT_COMBAT_EVENT, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_FADED)
 
 		end
 
@@ -320,7 +313,7 @@ function CRHelper.PlayerActivated(eventCode, initial)
 			EVENT_MANAGER:UnregisterForEvent("NocturnalsFavor", EVENT_COMBAT_EVENT)
 			EVENT_MANAGER:UnregisterForEvent("Razorthorn", EVENT_COMBAT_EVENT)
 			EVENT_MANAGER:UnregisterForEvent("ShadowSplashCast", EVENT_COMBAT_EVENT)
-			--EVENT_MANAGER:UnregisterForEvent("StartSRealmCD", EVENT_COMBAT_EVENT)
+			EVENT_MANAGER:UnregisterForEvent("SRealmOpen", EVENT_COMBAT_EVENT)
 			EVENT_MANAGER:UnregisterForEvent("BossReset", EVENT_COMBAT_EVENT)
 			EVENT_MANAGER:UnregisterForEvent("PortalCD", EVENT_COMBAT_EVENT)
 			EVENT_MANAGER:UnregisterForEvent("CrushingDarkness", EVENT_COMBAT_EVENT)
@@ -418,21 +411,6 @@ function CRHelper.test( v , id1, id2)
 	CRHelper.FireControlShow(CRHelper.FormatRoaringFlareMessage())
 	PlaySound(SOUNDS.DUEL_START)
 
-	--[[]
-	for i=1 , 9 , 1 do
-		t[i] = {}
-		for j=1 , 100 , 1 do
-			if(t[i][j] == nil) then
-				if (GetSetting(i, j) == nil ) then return end
-				t[i][j] = GetSetting(i, j)
-			elseif ( t[i][j] ~= GetSetting(i, j) and GetSetting(i, j) ~= nil ) then
-				if (t[i][j] == nil ) then return end
-				d(i .. " - " .. j .. " -> " .. t[i][j] )
-				t[i][j] = GetSetting(i, j)
-			end
-		end
-	end
-	]]
 end
 
 -------------------
@@ -463,7 +441,7 @@ function CRHelper.CombatEvent(eventCode, result, isError, abilityName, abilityGr
 	if (not CRHelper.trackCombatEvents or not CRHelper.monitoringFight) then return end
 	
 	-- Only track non player events (source type 0).
-	if ((result == ACTION_RESULT_EFFECT_GAINED or result == ACTION_RESULT_BEGIN) and sourceType == 0) then
+	if (sourceType == 0) then
 
 		-- skip trash events
 		if (combatEventsBlacklist[string.lower(GetAbilityName(abilityId))]) then return end
@@ -501,7 +479,7 @@ function CRHelper.CombatEvent(eventCode, result, isError, abilityName, abilityGr
 				
 			end
 
-			d(zo_strformat("[<<1>>] <<2>> - |cFF2200<<3>>|r - |cCCCCCC<<4>>|r", abilityId, "|c" .. targetColor .. targetName .. "|r",  GetAbilityName(abilityId), t - combatStartedFrameTime))
+			d(zo_strformat("|cf49542(<<5>>)|r[<<1>>] <<2>> - |cFF2200<<3>>|r - |cCCCCCC<<4>>|r", abilityId, "|c" .. targetColor .. targetName .. "|r",  GetAbilityName(abilityId), t - combatStartedFrameTime, result))
 
 		end
 	end
@@ -518,7 +496,7 @@ function CRHelper.combatTip(eventCode , activeCombatTipId)
 	if( CRHelper.PortalSpawnTipId == activeCombatTipId and CRHelper.savedVariables.trackPortalSpawn ) then
 
 		CRHelper.stopPortalTimer = true
-		CRHelperFrame:SetHidden(true)
+		CRHelperFrame_PortalTimer:SetHidden(true)
 
 		local messageParams = CSA:CreateMessageParams(CSA_CATEGORY_SMALL_TEXT, SOUNDS.SKILL_LINE_ADDED)
 		messageParams:SetText( "|c98FB98 Portal UP |r - Group " .. CRHelper.currentPortalGroup )
@@ -566,8 +544,6 @@ function CRHelper.StopMonitoringFight( )
 
 	CRHelperFrame:SetHidden(true)
 	CRHelper.stopTimer = true
-
-	--CRHelper.inExecute = false
 
 	combatStartedFrameTime = 0
 
@@ -762,15 +738,15 @@ function CRHelper.PortalCoolDownStart(eventCode, result, isError, abilityName, a
 end
 --------------------
 
--- This function will be called when engaging Main Boss
-function CRHelper.startSRealmCoolDown(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
+-- This function will be called when portal opens
+function CRHelper.SRealmOpen(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
 
 	if ( not CRHelper.savedVariables.trackPortalTimer ) then return end
 
 	if ( result == ACTION_RESULT_EFFECT_GAINED ) then
 
 		CRHelper.stopPortalTimer = true
-		CRHelperFrame:SetHidden(true)
+		CRHelperFrame_PortalTimer:SetHidden(true)
 
 	end
 
