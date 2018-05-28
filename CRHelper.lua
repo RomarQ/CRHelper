@@ -1,6 +1,6 @@
 CRHelper = {
 	name = "CRHelper",
-	version	= "2.2.0",
+	version	= "2.3.0",
 	varVersion = 2,
 	trialZoneId = 1051,
 	UI = WINDOW_MANAGER:CreateTopLevelWindow("CRHelperUI"),
@@ -31,6 +31,8 @@ CRHelper = {
 		trackPortalTimer = true,
 		trackOrbSpawn = true,
 		trackBanefulMarkTimer = true,
+		trackMalevolentCore = true,
+		trackOlorimeSpear = true,
 
 		positionIndicatorEnabled = true,
 		positionIndicatorTexture = 2,
@@ -48,10 +50,10 @@ CRHelper = {
 	----- Portal Phase (Shadow Realm) -----
 
 		BossReset = 107478,
+		SRealm_CD_Start = 105890, -- Fired when Z'Maja is engaged
 		PortalSpawn = 103946,
 		PortalSpawnTipId = 100,
-		PortalEnd = 105218, -- 105218 only occurs after a portal wipe
-		PortalPhaseEndId = 109017,
+		SRealm_Win = 104792, -- Fired when Shadow Realm is closed
 		--
 		portalTimer = 0,
 		stopPortalTimer = true,
@@ -121,8 +123,8 @@ CRHelper = {
 
 
 	----- Crushing Darkness -----
-		beamId = 105161,
-		CrushingDarknessId = 105172,
+		CrushingDarknessOnSelf = 105239,
+		CrushingDarknessId = 105239, -- 105172 maybe will be needed
 		CrushingDarknessTipId = 102,
 		CrushingDarknessTimer = 0,
 		CrushingDarkness_CSA_Priority = 2,
@@ -143,8 +145,17 @@ CRHelper = {
 		BanefulMarkOnExecuteId = 107196,
 		BanefulMarkTimer = 0,
 		BanefulMark_CSA_Priority = 1,
-	----- Baneful Mark on execute -----
+	----- /Baneful Mark on execute -----
 
+	----- Malevolent Core -----
+		MalevolentCoreSpawn = 103980,
+		MalevolentCoreCounter = 0,
+	----- /Malevolent Core -----
+
+	----- Olorime Spear -----
+		OlorimeSpear = 104018,
+		OlorimeSpearCounter = 0,
+	----- /Malevolent Core -----
 }
 
 
@@ -257,8 +268,16 @@ function CRHelper.PlayerActivated(eventCode, initial)
 			EVENT_MANAGER:AddFilterForEvent("OrbSpawn", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, CRHelper.OrbSpawnId )
 
 			-- Register for when portal opens
-			EVENT_MANAGER:RegisterForEvent("SRealmOpen", EVENT_COMBAT_EVENT, CRHelper.SRealmOpen )
-			EVENT_MANAGER:AddFilterForEvent("SRealmOpen", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID , CRHelper.PortalSpawn )
+			EVENT_MANAGER:RegisterForEvent("SRealm_Open", EVENT_COMBAT_EVENT, CRHelper.SRealmOpen )
+			EVENT_MANAGER:AddFilterForEvent("SRealm_Open", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID , CRHelper.PortalSpawn )
+
+			-- Register for when portal closes
+			EVENT_MANAGER:RegisterForEvent("SRealm_Close", EVENT_COMBAT_EVENT, CRHelper.SRealmCoolDownUpdate )
+			EVENT_MANAGER:AddFilterForEvent("SRealm_Close", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, CRHelper.SRealm_Win )
+
+			-- Register for Shadow Realm CoolDown ( Should only happen at start of the fight )
+			EVENT_MANAGER:RegisterForEvent("SRealm_CD", EVENT_COMBAT_EVENT, CRHelper.SRealmCoolDownUpdate )
+			EVENT_MANAGER:AddFilterForEvent("SRealm_CD", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID , CRHelper.SRealm_CD_Start )			
 
 			-- Register for BossReset
 			EVENT_MANAGER:RegisterForEvent("BossReset", EVENT_COMBAT_EVENT, CRHelper.ResetPortalTimer )
@@ -268,12 +287,13 @@ function CRHelper.PlayerActivated(eventCode, initial)
 			EVENT_MANAGER:RegisterForEvent("CrushingDarkness", EVENT_COMBAT_EVENT, CRHelper.CrushingDarkness )
 			EVENT_MANAGER:AddFilterForEvent("CrushingDarkness", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, CRHelper.CrushingDarknessId )
 
-			EVENT_MANAGER:RegisterForEvent("PortalCD", EVENT_COMBAT_EVENT, CRHelper.PortalCoolDownStart )
-			EVENT_MANAGER:AddFilterForEvent("PortalCD", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, CRHelper.PortalPhaseEndId )
+			-- Register for when Malevolent Core Spawns
+			EVENT_MANAGER:RegisterForEvent("MalevolentCoreSpawn", EVENT_COMBAT_EVENT, CRHelper.MalevolentCoreGrant )
+			EVENT_MANAGER:AddFilterForEvent("MalevolentCoreSpawn", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, CRHelper.MalevolentCoreSpawn )
 
-			-- Register for when portal closes
-			EVENT_MANAGER:RegisterForEvent("portalEnd", EVENT_COMBAT_EVENT, CRHelper.PortalPhaseEnd )
-			EVENT_MANAGER:AddFilterForEvent("portalEnd", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, CRHelper.PortalEnd )
+			-- Register for when Olorime Spear Granted
+			EVENT_MANAGER:RegisterForEvent("OlorimeSpear_Grant", EVENT_COMBAT_EVENT, CRHelper.OlorimeSpearGrant )
+			EVENT_MANAGER:AddFilterForEvent("OlorimeSpear_Grant", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, CRHelper.OlorimeSpear)
 
 			-- Register for Baneful Mark on execute
 			EVENT_MANAGER:RegisterForEvent("BanefulMarkOnExecute", EVENT_COMBAT_EVENT, CRHelper.BanefulMarkOnExecute )
@@ -285,9 +305,6 @@ function CRHelper.PlayerActivated(eventCode, initial)
 			EVENT_MANAGER:RegisterForEvent("combatTip", EVENT_DISPLAY_ACTIVE_COMBAT_TIP, CRHelper.combatTip )
 
 			EVENT_MANAGER:RegisterForEvent("CloudrestCombatEvent", EVENT_COMBAT_EVENT, CRHelper.CombatEvent)
-			EVENT_MANAGER:AddFilterForEvent("CloudrestCombatEvent", EVENT_COMBAT_EVENT, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_GAINED)
-			EVENT_MANAGER:AddFilterForEvent("CloudrestCombatEvent", EVENT_COMBAT_EVENT, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_GAINED)
-			EVENT_MANAGER:AddFilterForEvent("CloudrestCombatEvent", EVENT_COMBAT_EVENT, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_FADED)
 
 		end
 
@@ -313,11 +330,14 @@ function CRHelper.PlayerActivated(eventCode, initial)
 			EVENT_MANAGER:UnregisterForEvent("NocturnalsFavor", EVENT_COMBAT_EVENT)
 			EVENT_MANAGER:UnregisterForEvent("Razorthorn", EVENT_COMBAT_EVENT)
 			EVENT_MANAGER:UnregisterForEvent("ShadowSplashCast", EVENT_COMBAT_EVENT)
-			EVENT_MANAGER:UnregisterForEvent("SRealmOpen", EVENT_COMBAT_EVENT)
+			EVENT_MANAGER:UnregisterForEvent("SRealm_Open", EVENT_COMBAT_EVENT)
+			EVENT_MANAGER:UnregisterForEvent("SRealm_Close", EVENT_COMBAT_EVENT)
+			EVENT_MANAGER:UnregisterForEvent("SRealm_CD", EVENT_COMBAT_EVENT)
 			EVENT_MANAGER:UnregisterForEvent("BossReset", EVENT_COMBAT_EVENT)
-			EVENT_MANAGER:UnregisterForEvent("PortalCD", EVENT_COMBAT_EVENT)
 			EVENT_MANAGER:UnregisterForEvent("CrushingDarkness", EVENT_COMBAT_EVENT)
 			EVENT_MANAGER:UnregisterForEvent("BanefulMarkOnExecute", EVENT_COMBAT_EVENT)
+			EVENT_MANAGER:UnregisterForEvent("MalevolentCoreSpawn", EVENT_COMBAT_EVENT)
+			EVENT_MANAGER:UnregisterForEvent("OlorimeSpear_Grant", EVENT_COMBAT_EVENT)
 
 			EVENT_MANAGER:UnregisterForEvent("inCombat", EVENT_PLAYER_COMBAT_STATE )
 
@@ -335,16 +355,6 @@ end
 local t = {}
 
 function CRHelper.test( v , id1, id2)
-
-	
-	--local messageParams = CSA:CreateMessageParams(CSA_CATEGORY_MAJOR_TEXT, SOUNDS.MESSAGE_BROADCAST)
-	--local messageParams = CSA:CreateMessageParams(CSA_CATEGORY_LARGE_TEXT, SOUNDS.ACHIEVEMENT_AWARDED)
-	--messageParams:SetText( "|c98FB98 Portal UP |r - Group " .. CRHelper.currentPortalGroup )
-    --messageParams:SetCSAType(CENTER_SCREEN_ANNOUNCE_TYPE_DISPLAY_ANNOUNCEMENT)
-	--messageParams:SetIconData("/esoui/art/buttons/large_rightarrow_up.dds")--, "EsoUI/Art/Achievements/achievements_iconBG.dds")
-	--messageParams:MarkSuppressIconFrame()
-	--CSA:AddMessageWithParams(messageParams)
-
 
 	zo_callLater(function()
 
@@ -378,6 +388,14 @@ function CRHelper.test( v , id1, id2)
 		CRHelper.PortalTimerUpdate()
 		CRHelper.CrushingDarknessTimerUpdate()
 		CRHelper.BanefulMarkTimerUpdate()
+
+		CRHelperFrame_MalevolentCoreCounter:SetText("|t32:32:esoui/art/compass/compass_bg_murderball_purple.dds|t|t32:32:esoui/art/buttons/large_rightarrow_up.dds|t".. math.ceil(CRHelper.MalevolentCoreCounter/2) )
+		CRHelperFrame_MalevolentCoreCounter:SetHidden(false)
+
+		CRHelperFrame_OlorimeSpearCounter:SetText("|t32:32:esoui/art/tutorial/progression_tabicon_solspear_up.dds|t|t32:32:esoui/art/buttons/large_rightarrow_up.dds|t".. CRHelper.OlorimeSpearCounter )
+		CRHelperFrame_OlorimeSpearCounter:SetHidden(false)
+
+
 	elseif ( v == 1 ) then
 		CRHelper.CrushingDarknessTimer = 28
 		CRHelperFrame:SetHidden(false)
@@ -394,22 +412,6 @@ function CRHelper.test( v , id1, id2)
 		CRHelper.BanefulMarkTimerUpdate()
 		CRHelperFrame_BanefulMarkTimer:SetHidden(false)
 	end
-
-	if ( CRHelper.savedVariables.positionIndicatorEnabled ) then
-		LibPI:PostitionIndicatorShow()
-	end
-
-	CRHelper.fireTargetUnit1 = id1
-	d(LUNIT:GetUnitTagForUnitId(CRHelper.fireTargetUnit1))
-	CRHelper.fireTargetUnit2 = id2
-
-	CRHelper.fireCount = CRHelper.roaringFlareDuration
-
-	EVENT_MANAGER:UnregisterForUpdate("FireTimer")
-	EVENT_MANAGER:RegisterForUpdate("FireTimer", 1000, CRHelper.FireTimerTick)
-
-	CRHelper.FireControlShow(CRHelper.FormatRoaringFlareMessage())
-	PlaySound(SOUNDS.DUEL_START)
 
 end
 
@@ -471,17 +473,14 @@ function CRHelper.CombatEvent(eventCode, result, isError, abilityName, abilityGr
 			elseif (IsUnitPlayer(targetUnitTag)) then
 
 				targetColor = "00BFFF"
-				if (not combatEventsWhitelist[string.lower(GetAbilityName(abilityId))] and not combatEventsList[abilityId]) then return end -- the only way to remove other players abilities from output...
-
-			else
-
-				return
+				--if (not combatEventsWhitelist[string.lower(GetAbilityName(abilityId))] and not combatEventsList[abilityId]) then return end -- the only way to remove other players abilities from output...
 				
 			end
 
-			d(zo_strformat("|cf49542(<<5>>)|r[<<1>>] <<2>> - |cFF2200<<3>>|r - |cCCCCCC<<4>>|r", abilityId, "|c" .. targetColor .. targetName .. "|r",  GetAbilityName(abilityId), t - combatStartedFrameTime, result))
-
 		end
+
+		d(zo_strformat("|cf49542(<<5>>)|r[<<1>>] <<2>> - |cFF2200<<3>>|r - |cCCCCCC<<4>>|r", abilityId, "|c" .. targetColor .. targetName .. "|r",  GetAbilityName(abilityId), t - combatStartedFrameTime, result))
+
 	end
 
 end
@@ -505,18 +504,9 @@ function CRHelper.combatTip(eventCode , activeCombatTipId)
 
 		if ( CRHelper.currentPortalGroup == 1 ) then
 			CRHelper.currentPortalGroup = 2
-		elseif ( CRHelper.currentPortalGroup == 2 ) then
+		else
 			CRHelper.currentPortalGroup = 1
 		end
-
-		return
-
-	elseif ( CRHelper.CrushingDarknessTipId == activeCombatTipId and CRHelper.savedVariables.trackCrushingDarkness ) then
- 
-		local messageParams = CSA:CreateMessageParams(CSA_CATEGORY_SMALL_TEXT, SOUNDS.SKILL_LINE_ADDED)
-		messageParams:SetText( "|cff5d00 Crushing Darkness is on you! |r")
-		messageParams:SetPriority(CRHelper.CrushingDarkness_CSA_Priority)
-		CSA:AddMessageWithParams(messageParams)
 
 	end
 
@@ -661,10 +651,19 @@ function CRHelper.Razorthorn(eventCode, result, isError, abilityName, abilityGra
 end
 
 -------------------
--- Starts a Cooldown timer for Crushing Darkness
+-- Notifies about crushing darkness and starts a Cooldown timer for Crushing Darkness
 -------------------
 function CRHelper.CrushingDarkness(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
 	
+	if ( result == ACTION_RESULT_EFFECT_GAINED and targetType == COMBAT_UNIT_TYPE_PLAYER and CRHelper.savedVariables.trackCrushingDarkness) then
+
+		local messageParams = CSA:CreateMessageParams(CSA_CATEGORY_SMALL_TEXT, SOUNDS.SKILL_LINE_ADDED)
+		messageParams:SetText( "|cff5d00 Crushing Darkness is on you! |r")
+		messageParams:SetPriority(CRHelper.CrushingDarkness_CSA_Priority)
+		CSA:AddMessageWithParams(messageParams)
+
+	end
+
 	if ( not CRHelper.savedVariables.trackCrushingDarknessTimer ) then return end
 
 	if ( result == ACTION_RESULT_EFFECT_GAINED ) then
@@ -716,30 +715,55 @@ function CRHelper.OrbSpawn(eventCode, result, isError, abilityName, abilityGraph
 	end
 
 end
---------------------
+-------------------
 
 -------------------
--- Shows a timer for next portal phase
+-- Fires a notification when orbs are going to spawn
 -------------------
-function CRHelper.PortalCoolDownStart(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
+function CRHelper.MalevolentCoreGrant(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
 
-	if ( not CRHelper.savedVariables.trackPortalTimer ) then return end
+	if ( not CRHelper.savedVariables.trackMalevolentCore ) then return end
 
-	if ( result == ACTION_RESULT_EFFECT_FADED ) then
+	if ( result == ACTION_RESULT_EFFECT_GAINED ) then
 
-		CRHelper.portalTimer = 45
-		CRHelper.stopPortalTimer = false
+		CRHelper.MalevolentCoreCounter = CRHelper.MalevolentCoreCounter + 1
 		CRHelperFrame:SetHidden(false)
-		CRHelperFrame_PortalTimer:SetHidden(false)
-		CRHelper.PortalTimerUpdate()
+		CRHelperFrame_MalevolentCoreCounter:SetText("|t32:32:esoui/art/compass/compass_bg_murderball_purple.dds|t|t32:32:esoui/art/buttons/large_rightarrow_up.dds|t".. math.ceil(CRHelper.MalevolentCoreCounter/2) )
+		CRHelperFrame_MalevolentCoreCounter:SetHidden(false)
 
 	end
 
 end
---------------------
+-------------------
 
+-------------------
+-- Fires a notification when orbs are going to spawn
+-------------------
+function CRHelper.OlorimeSpearGrant(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
+
+	if ( not CRHelper.savedVariables.trackOlorimeSpear ) then return end
+
+	if ( result == ACTION_RESULT_EFFECT_FADED ) then
+
+		CRHelper.OlorimeSpearCounter = CRHelper.OlorimeSpearCounter + 1
+		CRHelperFrame:SetHidden(false)
+		CRHelperFrame_OlorimeSpearCounter:SetText("|t32:32:esoui/art/tutorial/progression_tabicon_solspear_up.dds|t|t32:32:esoui/art/buttons/large_rightarrow_up.dds|t".. CRHelper.OlorimeSpearCounter )
+		CRHelperFrame_OlorimeSpearCounter:SetHidden(false)
+
+	end
+
+end
+-------------------
+-------------------
 -- This function will be called when portal opens
+-------------------
 function CRHelper.SRealmOpen(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
+
+	-- Restart Counters after shadow realm opens
+	CRHelperFrame_MalevolentCoreCounter:SetHidden(true)
+	CRHelperFrame_OlorimeSpearCounter:SetHidden(true)
+	CRHelper.MalevolentCoreCounter = 0
+	CRHelper.OlorimeSpearCounter = 0
 
 	if ( not CRHelper.savedVariables.trackPortalTimer ) then return end
 
@@ -752,19 +776,43 @@ function CRHelper.SRealmOpen(eventCode, result, isError, abilityName, abilityGra
 
 end
 
+-------------------
+-- Updates and shows a timer for next portal phase
+-------------------
+function CRHelper.SRealmCoolDownUpdate(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
+	
+	-- Will fix interrupt message of shadow realm boss from displaying after portal closes
+	CRInterrupt:SetHidden(true)
+
+	-- Hide Counters when Shadow Realm is closed
+	CRHelperFrame_MalevolentCoreCounter:SetHidden(true)
+	CRHelperFrame_OlorimeSpearCounter:SetHidden(true)
+	CRHelper.MalevolentCoreCounter = 0
+	CRHelper.OlorimeSpearCounter = 0
+
+	if ( not CRHelper.savedVariables.trackPortalTimer ) then return end
+
+	if ( result == ACTION_RESULT_EFFECT_FADED ) then
+
+		CRHelper.portalTimer = 46
+		CRHelper.stopPortalTimer = false
+		CRHelperFrame:SetHidden(false)
+		CRHelperFrame_PortalTimer:SetHidden(false)
+		CRHelper.PortalTimerUpdate()
+
+	end
+
+end
+
 -- This function is called on every wipe when fighting main boss in Cloudrest
 function CRHelper.ResetPortalTimer(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
 
 	if ( result == ACTION_RESULT_EFFECT_GAINED ) then
 		-- Sets starting group that goes to portal
 		CRHelper.currentPortalGroup = 1;
+		CRHelperFrame:SetHidden(true)
 	end
 
-end
-
-function CRHelper.PortalPhaseEnd(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
-	-- Will fix interrupt message of shadow realm boss from displaying after portal closes
-	CRInterrupt:SetHidden(true)
 end
 
 -------------------

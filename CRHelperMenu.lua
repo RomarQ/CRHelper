@@ -226,6 +226,30 @@ function CRHelper.buildMenu( savedVars )
 		},
 		{
 			type = "header",
+			name = "Counters"
+		},
+		{
+			type = "checkbox",
+			name = "Malevolent Cores",
+			tooltip = "Tells how many Malevolent Cores were already exposed.",
+            default = settings.trackMalevolentCore,
+			getFunc = function() return CRHelper.savedVariables.trackMalevolentCore end,
+			setFunc = function(value)
+				CRHelper.savedVariables.trackMalevolentCore = value
+			end
+		},
+		{
+			type = "checkbox",
+			name = "Olorime Spears",
+			tooltip = "Tells how many Olorime Spears were already granted to shadow realm.",
+            default = settings.trackOlorimeSpear,
+			getFunc = function() return CRHelper.savedVariables.trackOlorimeSpear end,
+			setFunc = function(value)
+				CRHelper.savedVariables.trackOlorimeSpear = value
+			end
+		},
+		{
+			type = "header",
 			name = "Roaring Flare Options"
 		},
 		{

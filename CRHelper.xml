@@ -11,9 +11,14 @@
       </OnMoveStop>
 
       <Controls>
-      
+
+        <Texture name="$(parent)_TopDivider" textureFile="esoui/art/battlegrounds/battlegrounds_scoreboard_highlightstrip_green.dds" tier="HIGH">
+          <Anchor point="TOPLEFT"/>
+					<Dimensions x="300" y="12"/>
+				</Texture>
+
         <Label name="$(parent)_PortalTimer" font="$(CRH_MEDIUM_FONT)|$(KB_18)|soft-shadow-thick" color="FFFFFF" wrapMode="ELLIPSE" verticalAlignment="BOTTOM" hidden="true">
-          <Anchor point="TOPLEFT" />
+          <Anchor point="TOPLEFT" relativePoint="BOTTOMLEFT" relativeTo="$(parent)_TopDivider" offsetY="5" />
           <Dimensions x="310" y="20" />
         </Label>
 
@@ -26,7 +31,27 @@
           <Anchor point="TOPLEFT" relativePoint="BOTTOMLEFT" relativeTo="$(parent)_CrushingDarknessTimer" offsetY="5" />
           <Dimensions x="310" y="20" />
         </Label>
-        
+
+        <Texture name="$(parent)_TimerDivider" textureFile="esoui/art/battlegrounds/battlegrounds_scoreboard_highlightstrip_orange.dds" tier="HIGH">
+          <Anchor point="TOPLEFT" relativePoint="BOTTOMLEFT" relativeTo="$(parent)_BanefulMarkTimer" offsetY="5" />
+					<Dimensions x="300" y="12"/>
+				</Texture>
+
+        <Label name="$(parent)_MalevolentCoreCounter" font="$(CRH_MEDIUM_FONT)|$(KB_18)|soft-shadow-thick" color="FFFFFF" wrapMode="ELLIPSE" verticalAlignment="BOTTOM" hidden="true">
+          <Anchor point="TOPLEFT" relativePoint="BOTTOMLEFT" relativeTo="$(parent)_TimerDivider" offsetY="5" />
+          <Dimensions x="310" y="20" />
+        </Label>
+
+        <Label name="$(parent)_OlorimeSpearCounter" font="$(CRH_MEDIUM_FONT)|$(KB_18)|soft-shadow-thick" color="FFFFFF" wrapMode="ELLIPSE" verticalAlignment="BOTTOM" hidden="true">
+          <Anchor point="TOPLEFT" relativePoint="BOTTOMLEFT" relativeTo="$(parent)_MalevolentCoreCounter" offsetY="10" />
+          <Dimensions x="310" y="20" />
+        </Label>
+
+        <Texture name="$(parent)_BottomDivider" textureFile="esoui/art/battlegrounds/battlegrounds_scoreboard_highlightstrip_purple.dds" tier="HIGH">
+          <Anchor point="TOPLEFT" relativePoint="BOTTOMLEFT" relativeTo="$(parent)_OlorimeSpearCounter" offsetY="10" />
+					<Dimensions x="300" y="12"/>
+				</Texture>
+
       </Controls>
 
 	</TopLevelControl>
