@@ -184,6 +184,18 @@ combatEventsBlacklist['riposte'] = true
 combatEventsBlacklist['hate me dummy'] = true
 combatEventsBlacklist['synergy immunity'] = true
 
+local clipboardWindow = WINDOW_MANAGER:CreateTopLevelWindow("ClipboardWindow")
+clipboardWindow:SetMouseEnabled(false)
+clipboardWindow:SetDimensions(50, 50)
+clipboardWindow:SetTopmost(true)
+
+local clipboard = WINDOW_MANAGER:CreateControl(nil, clipboardWindow, CT_TEXTURE)
+clipboard:SetPixelRoundingEnabled(false)
+clipboard:SetAnchor(BOTTOMLEFT, GuiRoot, BOTTOMLEFT, 0, 0)
+clipboard:SetDimensions(50, 50)
+clipboard:SetColor(1, 0, 1)
+clipboard:SetHidden(true)
+
 function CRHelper.OnAddOnLoaded(event, addonName)
 	-- The event fires each time *any* addon loads - but we only care about when our own addon loads.
 	if addonName ~= CRHelper.name then return end
@@ -1371,10 +1383,14 @@ function CRHelper.VoltaicOverload(eventCode, changeType, effectSlot, effectName,
 
 		LibGlow:HideGlow()
 
+		clipboard:SetHidden(true)
+
     elseif (changeType == EFFECT_RESULT_GAINED) or (changeType == EFFECT_RESULT_UPDATED) then
+
 		CRHelper.shockStarted = true
 		CRHelper.swapped = false
 		CRHelper.EnableShockTimer(beginTime, endTime)
+
     end
 
 end
@@ -1382,10 +1398,19 @@ end
 function CRHelper.WeaponSwap()
 
 	if (CRHelper.shockStarted and not CRHelper.swapped) then
+
 		CRHelper.swapped = true
 		CRHelper.ShockControlShow("NO SWAP: " .. string.format("%01d", CRHelper.shockCount))
 
+		clipboard:SetHidden(false)
+
 		if (CRHelper.savedVariables.voltaicOverloadScreenGlow) then LibGlow:ShowGlow() end
+
+	else
+
+		CRHelper.swapped = false
+		clipboard:SetHidden(true)
+
 	end
 
 end
@@ -1632,6 +1657,8 @@ function CRHelper:unlockUI()
 
 	if (CRHelper.savedVariables.voltaicOverloadScreenGlow) then LibGlow:ShowGlow() end
 
+	clipboard:SetHidden(false)
+
 end
 
 function CRHelper:lockUI()
@@ -1648,6 +1675,8 @@ function CRHelper:lockUI()
 	CRHelperFrame_PortalTimer:SetHidden(true)
 
 	LibGlow:HideGlow()
+
+	clipboard:SetHidden(true)
 
 end
 
