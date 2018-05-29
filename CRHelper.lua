@@ -120,17 +120,12 @@ CRHelper = {
 
 	----- /Weapon Swap mechanic ( Shock ) -----
 
-
-
 	----- Crushing Darkness -----
-		CrushingDarknessOnSelf = 105239,
 		CrushingDarknessId = 105239, -- 105172 maybe will be needed
 		CrushingDarknessTipId = 102,
 		CrushingDarknessTimer = 0,
 		CrushingDarkness_CSA_Priority = 2,
 	----- /Crushing Darkness -----
-
-
 
 	----- Shadow Splash Cast (Interrupt) -----
 		ShadowSplashCastId = 105123,
@@ -667,7 +662,9 @@ end
 -------------------
 function CRHelper.CrushingDarkness(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
 	
-	if ( result == ACTION_RESULT_EFFECT_GAINED and targetType == COMBAT_UNIT_TYPE_PLAYER and CRHelper.savedVariables.trackCrushingDarkness) then
+	if ( result == ACTION_RESULT_EFFECT_GAINED ) then return end
+	
+	if ( targetType == COMBAT_UNIT_TYPE_PLAYER and CRHelper.savedVariables.trackCrushingDarkness) then
 
 		local messageParams = CSA:CreateMessageParams(CSA_CATEGORY_SMALL_TEXT, SOUNDS.SKILL_LINE_ADDED)
 		messageParams:SetText( "|cff5d00 Crushing Darkness is on you! |r")
@@ -678,14 +675,10 @@ function CRHelper.CrushingDarkness(eventCode, result, isError, abilityName, abil
 
 	if ( not CRHelper.savedVariables.trackCrushingDarknessTimer ) then return end
 
-	if ( result == ACTION_RESULT_EFFECT_GAINED ) then
-		
-		CRHelper.CrushingDarknessTimer = 28
-		CRHelperFrame:SetHidden(false)
-		CRHelperFrame_CrushingDarknessTimer:SetHidden(false)
-		CRHelper.CrushingDarknessTimerUpdate()
-
-	end
+	CRHelper.CrushingDarknessTimer = 28
+	CRHelperFrame:SetHidden(false)
+	CRHelperFrame_CrushingDarknessTimer:SetHidden(false)
+	CRHelper.CrushingDarknessTimerUpdate()
 
 end
 
