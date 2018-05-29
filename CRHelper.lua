@@ -662,7 +662,7 @@ end
 -------------------
 function CRHelper.CrushingDarkness(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
 	
-	if ( result == ACTION_RESULT_EFFECT_GAINED ) then return end
+	if ( result ~= ACTION_RESULT_EFFECT_GAINED ) then return end
 	
 	if ( targetType == COMBAT_UNIT_TYPE_PLAYER and CRHelper.savedVariables.trackCrushingDarkness) then
 
