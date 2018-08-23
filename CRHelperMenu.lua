@@ -359,28 +359,8 @@ function CRHelper.buildMenu( savedVars )
 		},
 		{
 			type = "description",
-			text = "Players with fixed positions on execute should set the following roles:"
+			text = "Healers positions is in alphabetical order, they must have healer role to work."
 		},
-		{
-			type = "description",
-			title = "Healer Left\n",
-			text = "|t64:64:esoui/art/lfg/lfg_healer_up_64.dds|t"
-		},
-		{
-			type = "description",
-			title = "Healer Right\n",
-			text = "|t64:64:esoui/art/lfg/lfg_healer_up_64.dds|t |t64:64:esoui/art/lfg/lfg_dps_up_64.dds|t"
-		},
-		{
-			type = "description",
-			title = "Tank Right\n",
-			text = "|t64:64:esoui/art/lfg/lfg_tank_up_64.dds|t |t64:64:esoui/art/lfg/lfg_dps_up_64.dds|t"
-		},
-		{
-			type = "description",
-			title = "Tank Left\n",
-			text = "|t64:64:esoui/art/lfg/lfg_tank_up_64.dds|t |t64:64:esoui/art/lfg/lfg_healer_up_64.dds|t"
-		}
 	}
 
     LAM:RegisterOptionControls(CRHelper.name.."Options", options)
