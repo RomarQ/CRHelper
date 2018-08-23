@@ -1,6 +1,6 @@
 CRHelper = {
 	name = "CRHelper",
-	version	= "2.3.0",
+	version	= "2.4.1",
 	varVersion = 2,
 	trialZoneId = 1051,
 	UI = WINDOW_MANAGER:CreateTopLevelWindow("CRHelperUI"),
@@ -108,7 +108,8 @@ CRHelper = {
 	----- Weapon Swap mechanic ( Shock ) -----
 
 		-- Shock animation started on a player
-		voltaicCurrentIds = {103895, 103896, 110427},
+		-- OLD: {103895, 103896, 110427},
+		voltaicCurrentIds = {103555, 103554},
 
 		-- Big shock aoe on a player (lasts 10 seconds)
 		voltaicOverloadIds = {87346},
@@ -129,6 +130,8 @@ CRHelper = {
 
 	----- Shadow Splash Cast (Interrupt) -----
 		ShadowSplashCastId = 105123,
+		shadowSplashDuration = 3,
+		shadowSplashCount = 0,
 	----- /Shadow Splash Cast (Interrupt) -----
 
 	----- Orbs Spawning -----
@@ -187,7 +190,7 @@ clipboardWindow:SetTopmost(true)
 local clipboard = WINDOW_MANAGER:CreateControl(nil, clipboardWindow, CT_TEXTURE)
 clipboard:SetPixelRoundingEnabled(false)
 clipboard:SetAnchor(BOTTOMLEFT, GuiRoot, BOTTOMLEFT, 0, 0)
-clipboard:SetDimensions(50, 50)
+--clipboard:SetDimensions(50, 50)
 clipboard:SetColor(1, 0, 1)
 clipboard:SetHidden(true)
 
@@ -257,7 +260,19 @@ function CRHelper.PlayerActivated(eventCode, initial)
 			-- Spider's Heavy Attack
 			EVENT_MANAGER:RegisterForEvent("Corpulence", EVENT_COMBAT_EVENT, CRHelper.Corpulence)
 			EVENT_MANAGER:AddFilterForEvent("Corpulence", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, 105968)
+
+			-- Siroria's Heavy Attack
+			EVENT_MANAGER:RegisterForEvent("ScaldingSunder", EVENT_COMBAT_EVENT, CRHelper.ShadeHeavyAttack)
+			EVENT_MANAGER:AddFilterForEvent("ScaldingSunder", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, 104755)
+
+			-- Relequen's Heavy Attack
+			EVENT_MANAGER:RegisterForEvent("ShockingSmash", EVENT_COMBAT_EVENT, CRHelper.ShadeHeavyAttack)
+			EVENT_MANAGER:AddFilterForEvent("ShockingSmash", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, 105780)
 			
+			-- Galenwe's Heavy Attack
+			EVENT_MANAGER:RegisterForEvent("RavagingBlow", EVENT_COMBAT_EVENT, CRHelper.ShadeHeavyAttack)
+			EVENT_MANAGER:AddFilterForEvent("RavagingBlow", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, 106375)
+
 			-- Main Boss pokeball
 			EVENT_MANAGER:RegisterForEvent("NocturnalsFavor", EVENT_COMBAT_EVENT, CRHelper.NocturnalsFavor)
 			EVENT_MANAGER:AddFilterForEvent("NocturnalsFavor", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, 104535)
@@ -334,6 +349,9 @@ function CRHelper.PlayerActivated(eventCode, initial)
 			EVENT_MANAGER:UnregisterForEvent("CloudrestWeaponSwap", EVENT_ACTIVE_WEAPON_PAIR_CHANGED)
 			EVENT_MANAGER:UnregisterForEvent("BanefulBarb", EVENT_COMBAT_EVENT)
 			EVENT_MANAGER:UnregisterForEvent("Corpulence", EVENT_COMBAT_EVENT)
+			EVENT_MANAGER:UnregisterForEvent("ScaldingSunder", EVENT_COMBAT_EVENT)
+			EVENT_MANAGER:UnregisterForEvent("ShockingSmash", EVENT_COMBAT_EVENT)
+			EVENT_MANAGER:UnregisterForEvent("RavagingBlow", EVENT_COMBAT_EVENT)
 			EVENT_MANAGER:UnregisterForEvent("NocturnalsFavor", EVENT_COMBAT_EVENT)
 			EVENT_MANAGER:UnregisterForEvent("Razorthorn", EVENT_COMBAT_EVENT)
 			EVENT_MANAGER:UnregisterForEvent("ShadowSplashCast", EVENT_COMBAT_EVENT)
@@ -657,6 +675,26 @@ function CRHelper.Razorthorn(eventCode, result, isError, abilityName, abilityGra
 
 end
 
+-- Shade's Heavy Attack
+function CRHelper.ShadeHeavyAttack(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
+
+	if (not CRHelper.savedVariables.trackCorpulence or targetType ~= COMBAT_UNIT_TYPE_PLAYER) then return end
+
+	if (result == ACTION_RESULT_BEGIN) then
+
+		CRReticle_Label:SetText("HEAVY")
+		CRReticle_Label:SetColor(1, 0.25, 1)
+		CRReticle:SetHidden(false)
+		PlaySound(SOUNDS.CHAMPION_POINTS_COMMITTED)
+
+		zo_callLater(function()
+			CRReticle:SetHidden(true)
+		end, 2000)
+
+	end
+
+end
+
 -------------------
 -- Notifies about crushing darkness and starts a Cooldown timer for Crushing Darkness
 -------------------
@@ -924,38 +962,48 @@ end
 -- Formats and returns one name or concatinates two names into one string
 function CRHelper.FormatRoaringFlareMessage()
 
-	local tag1  = LUNIT:GetUnitTagForUnitId(CRHelper.fireTargetUnit1)
-	local tag2  = LUNIT:GetUnitTagForUnitId(CRHelper.fireTargetUnit2)
+	local tag1 = LUNIT:GetUnitTagForUnitId(CRHelper.fireTargetUnit1)
+	local tag2 = LUNIT:GetUnitTagForUnitId(CRHelper.fireTargetUnit2)
 
-	isDps1, isHealer1, isTank1 = GetGroupMemberRoles( tag1 )
-	isDps2, isHealer2, isTank2 = GetGroupMemberRoles( tag2 )
+	local player1IsHealer = GetGroupMemberSelectedRole( tag1 ) == 4
+	local player2IsHealer = GetGroupMemberSelectedRole( tag2 ) == 4
 
-	local name1 = AreUnitsEqual('player', tag1) and '|cFFFFFFYOU|r' or LUNIT:GetNameForUnitId(CRHelper.fireTargetUnit1)
-	local name2 = AreUnitsEqual('player', tag2) and '|cFFFFFFYOU|r' or LUNIT:GetNameForUnitId(CRHelper.fireTargetUnit2)
+	local name1 = AreUnitsEqual('player', tag1) and '|cFFFFFFYOU|r' or GetUnitName( tag1 )
+	local name2 = AreUnitsEqual('player', tag2) and '|cFFFFFFYOU|r' or GetUnitName( tag2 )
 
 	-- 2 players with roaring flare
 	if (CRHelper.fireTargetUnit1 > 0 and CRHelper.fireTargetUnit2 > 0) then
 		
-		-- Only Healer [Left] - Priority level 1
-		if ( not isDps2 and isHealer2 and not isTank2 ) then
-			local aux = name1
-			name1 = name2
-			name2 = aux
-		-- Only Dps and Healer [Right] - Priority level 1
-		elseif ( isDps1 and isHealer1 and not isTank1 ) then
-			local aux = name2
-			name2 = name1
-			name1 = aux
-		-- Only Healer and Tank [Left] - Priority level 2
-		elseif ( not isDps2 and isHealer2 and isTank2 ) then
-			local aux = name1
-			name1 = name2
-			name2 = aux
-		-- Only Dps and Tank [Right] - Priority level 2
-		elseif ( isDps1 and not isHealer1 and isTank1 ) then
-			local aux = name2
-			name2 = name1
-			name1 = aux
+		if player1IsHealer or player2IsHealer then
+
+			local groupSize = GetGroupSize()
+			local healers = {}
+
+			for i = 0, groupSize, 1 do
+				local unit = GetGroupUnitTagByIndex(i)
+				if GetGroupMemberSelectedRole( unit ) == 4 then
+					table.insert(healers, unit)
+				end
+			end
+
+			if table.getn(healers) > 1 then
+				if GetUnitName(healers[1]) > GetUnitName(healers[2]) then
+					local aux = healers[1]
+					healers[1] = healers[2]
+					healers[2] = aux
+				end
+			end
+
+			if player1IsHealer and tag1 ~= healers[1] then
+				local aux = name1
+				name1 = name2
+				name2 = aux
+			elseif player2IsHealer and tag2 ~= healers[2] then
+				local aux = name1
+				name1 = name2
+				name2 = aux
+			end
+
 		end
 
 		return zo_strformat(CRHelper.roaringFlareMessage2, name1, name2, CRHelper.fireCount)
@@ -1473,16 +1521,37 @@ end
 -- Shows a notification when boss is casting Shadow Splash and needs to be interrupted
 function CRHelper.ShadowSplashCast(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
 
-	if ( not CRHelper.savedVariables.trackShadowSplashCast ) then return end
+	if not CRHelper.savedVariables.trackShadowSplashCast then return end
 
-	if ( result == ACTION_RESULT_EFFECT_FADED ) then
+	if result == ACTION_RESULT_BEGIN then
+
+		CRHelper.shadowSplashCount = CRHelper.shadowSplashDuration
+
+		CRInterrupt_Warning:SetText(string.format("Interrupt: |cFF0000%d|r", CRHelper.shadowSplashCount))
+		CRInterrupt:SetHidden(false)
+		PlaySound(SOUNDS.SKILL_LINE_ADDED)
+
+		EVENT_MANAGER:UnregisterForUpdate("ShadowSplashTimer")
+		EVENT_MANAGER:RegisterForUpdate("ShadowSplashTimer", 900, CRHelper.ShadowSplashTimerTick)
+
+	elseif result == ACTION_RESULT_EFFECT_FADED then
+
 		CRInterrupt:SetHidden(true)
-		return
+
 	end
 
-	CRInterrupt_Warning:SetText("Interrupt the Hypnotard!")
-	CRInterrupt:SetHidden(false)
-	PlaySound(SOUNDS.SKILL_LINE_ADDED)
+end
+
+function CRHelper.ShadowSplashTimerTick()
+
+	CRHelper.shadowSplashCount = CRHelper.shadowSplashCount - 1
+
+	if CRHelper.shadowSplashCount < 0 then
+		EVENT_MANAGER:UnregisterForUpdate("ShadowSplashTimer")
+		CRHelper.shadowSplashCount = 0
+	else
+		CRInterrupt_Warning:SetText(string.format("Interrupt: |cFF0000%d|r", CRHelper.shadowSplashCount))
+	end
 
 end
 
@@ -1642,7 +1711,7 @@ function CRHelper:unlockUI()
 	CRHelper.ShockControlShow("SHOCK INC")
 
 	CRInterrupt:SetHidden(false)
-	CRInterrupt_Warning:SetText("Interrupt the Hypnotard!")
+	CRInterrupt_Warning:SetText("Interrupt: |cFF00003|r")
 
 	CRHelperFrame:SetHidden(false)
 	CRHelperFrame_PortalTimer:SetText("Useful Timers...")
