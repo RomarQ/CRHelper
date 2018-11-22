@@ -1,6 +1,6 @@
 CRHelper = {
 	name = "CRHelper",
-	version	= "2.4.1",
+	version	= "2.6.1",
 	varVersion = 2,
 	trialZoneId = 1051,
 	UI = WINDOW_MANAGER:CreateTopLevelWindow("CRHelperUI"),
@@ -18,11 +18,13 @@ CRHelper = {
 		voltaicOverloadScreenGlow = true,
 		voltaicOverloadScreenGlowColor = {1, 0.3, 1},
 		voltaicOverloadScreenGlowSize = 0.15,
+		voltaicOverloadExtra = false,
 
 		trackBanefulBarb = true,
 		trackCorpulence = true,
 		trackNocturnalsFavor = true,
 		trackRazorthorn = true,
+		trackMaliciousStrike = true,
 
 		trackCrushingDarkness = true,
 		trackCrushingDarknessTimer = true,
@@ -109,7 +111,7 @@ CRHelper = {
 
 		-- Shock animation started on a player
 		-- OLD: {103895, 103896, 110427},
-		voltaicCurrentIds = {103555, 103554},
+		voltaicCurrentIds = {103555}, -- +103554?
 
 		-- Big shock aoe on a player (lasts 10 seconds)
 		voltaicOverloadIds = {87346},
@@ -130,7 +132,7 @@ CRHelper = {
 
 	----- Shadow Splash Cast (Interrupt) -----
 		ShadowSplashCastId = 105123,
-		shadowSplashDuration = 3,
+		shadowSplashDuration = 3.0,
 		shadowSplashCount = 0,
 	----- /Shadow Splash Cast (Interrupt) -----
 
@@ -156,6 +158,7 @@ CRHelper = {
 	----- /Malevolent Core -----
 }
 
+local CR = CRHelper
 
 LUNIT = LibStub:GetLibrary("LibUnits")
 LibPI = LibStub:GetLibrary("LibPositionIndicator")
@@ -164,23 +167,6 @@ LibGlow = LibStub:GetLibrary("LibScreenGlow")
 local CSA = CENTER_SCREEN_ANNOUNCE
 
 local combatStartedFrameTime = 0
-local combatEventsList = {} -- list of abilities casted on a player (we use it to filter abilities casted on another players)
-local combatEventsBuffer = {} -- timestamps for each ability/player to don't spam the chat too much
-local combatEventsWhitelist = {} -- names of useful abilities
-local combatEventsBlacklist = {} -- names of useless abilities
-
-combatEventsWhitelist['voltaic current'] = true
-combatEventsWhitelist['voltaic overload'] = true
-combatEventsWhitelist['roaring flare'] = true
-combatEventsWhitelist['hoarfrost'] = true
-
-combatEventsBlacklist['prioritize hit'] = true
-combatEventsBlacklist['randomize base attack'] = true
-combatEventsBlacklist['main tank trgt'] = true
-combatEventsBlacklist['off tank trgt'] = true
-combatEventsBlacklist['riposte'] = true
-combatEventsBlacklist['hate me dummy'] = true
-combatEventsBlacklist['synergy immunity'] = true
 
 local clipboardWindow = WINDOW_MANAGER:CreateTopLevelWindow("ClipboardWindow")
 clipboardWindow:SetMouseEnabled(false)
@@ -190,9 +176,21 @@ clipboardWindow:SetTopmost(true)
 local clipboard = WINDOW_MANAGER:CreateControl(nil, clipboardWindow, CT_TEXTURE)
 clipboard:SetPixelRoundingEnabled(false)
 clipboard:SetAnchor(BOTTOMLEFT, GuiRoot, BOTTOMLEFT, 0, 0)
---clipboard:SetDimensions(50, 50)
+clipboard:SetDimensions(50, 50)
 clipboard:SetColor(1, 0, 1)
 clipboard:SetHidden(true)
+
+-- unit ids of cores and number of them
+local malevolentCoreIds = {}
+local malevolentCoreNum = 0
+
+-- local variables for timers
+local heavyAttackList = {}
+local voltaicCurrentEnd = 0
+local voltaicOverloadEnd = 0
+
+-- timelines
+local animationTimelines = {}
 
 function CRHelper.OnAddOnLoaded(event, addonName)
 	-- The event fires each time *any* addon loads - but we only care about when our own addon loads.
@@ -281,6 +279,10 @@ function CRHelper.PlayerActivated(eventCode, initial)
 			EVENT_MANAGER:RegisterForEvent("Razorthorn", EVENT_COMBAT_EVENT, CRHelper.Razorthorn)
 			EVENT_MANAGER:AddFilterForEvent("Razorthorn", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, 106656)
 
+			-- Orb Projectile
+			EVENT_MANAGER:RegisterForEvent("MaliciousStrike", EVENT_COMBAT_EVENT, CR.MaliciousStrike)
+			EVENT_MANAGER:AddFilterForEvent("MaliciousStrike", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, 110242)
+			
 			-- Main Boss Interrupt Mechanic
 			EVENT_MANAGER:RegisterForEvent("ShadowSplashCast", EVENT_COMBAT_EVENT, CRHelper.ShadowSplashCast)
 			EVENT_MANAGER:AddFilterForEvent("ShadowSplashCast", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, CRHelper.ShadowSplashCastId)
@@ -309,9 +311,11 @@ function CRHelper.PlayerActivated(eventCode, initial)
 			EVENT_MANAGER:RegisterForEvent("CrushingDarkness", EVENT_COMBAT_EVENT, CRHelper.CrushingDarkness )
 			EVENT_MANAGER:AddFilterForEvent("CrushingDarkness", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, CRHelper.CrushingDarknessId )
 
-			-- Register for when Malevolent Core Spawns
-			EVENT_MANAGER:RegisterForEvent("MalevolentCoreSpawn", EVENT_COMBAT_EVENT, CRHelper.MalevolentCoreGrant )
-			EVENT_MANAGER:AddFilterForEvent("MalevolentCoreSpawn", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, CRHelper.MalevolentCoreSpawn )
+			-- Register for when Malevolent Core Hit player
+			--EVENT_MANAGER:RegisterForEvent("MalevolentCoreSpawn", EVENT_COMBAT_EVENT, CRHelper.MalevolentCoreGrant )
+			--EVENT_MANAGER:AddFilterForEvent("MalevolentCoreSpawn", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, CRHelper.MalevolentCoreSpawn )
+			EVENT_MANAGER:RegisterForEvent("MalevolentCoreHit", EVENT_COMBAT_EVENT, CR.MalevolentCoreHit)
+			EVENT_MANAGER:AddFilterForEvent("MalevolentCoreHit", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, 123456789)
 
 			-- Register for when Olorime Spear Granted
 			EVENT_MANAGER:RegisterForEvent("OlorimeSpear_Grant", EVENT_COMBAT_EVENT, CRHelper.OlorimeSpearGrant )
@@ -325,8 +329,6 @@ function CRHelper.PlayerActivated(eventCode, initial)
 
 			-- Register for any combat tip
 			EVENT_MANAGER:RegisterForEvent("combatTip", EVENT_DISPLAY_ACTIVE_COMBAT_TIP, CRHelper.combatTip )
-
-			EVENT_MANAGER:RegisterForEvent("CloudrestCombatEvent", EVENT_COMBAT_EVENT, CRHelper.CombatEvent)
 
 		end
 
@@ -354,6 +356,7 @@ function CRHelper.PlayerActivated(eventCode, initial)
 			EVENT_MANAGER:UnregisterForEvent("RavagingBlow", EVENT_COMBAT_EVENT)
 			EVENT_MANAGER:UnregisterForEvent("NocturnalsFavor", EVENT_COMBAT_EVENT)
 			EVENT_MANAGER:UnregisterForEvent("Razorthorn", EVENT_COMBAT_EVENT)
+			EVENT_MANAGER:UnregisterForEvent("MaliciousStrike", EVENT_COMBAT_EVENT)
 			EVENT_MANAGER:UnregisterForEvent("ShadowSplashCast", EVENT_COMBAT_EVENT)
 			EVENT_MANAGER:UnregisterForEvent("SRealm_Open", EVENT_COMBAT_EVENT)
 			EVENT_MANAGER:UnregisterForEvent("SRealm_Close", EVENT_COMBAT_EVENT)
@@ -370,74 +373,8 @@ function CRHelper.PlayerActivated(eventCode, initial)
 
 			EVENT_MANAGER:UnregisterForUpdate(CRHelper.name)
 
-			EVENT_MANAGER:UnregisterForEvent("CloudrestCombatEvent", EVENT_COMBAT_EVENT)
-
 		end
 	end
-end
-
----- testing cave
-local t = {}
-
-function CRHelper.test( v , id1, id2)
-
-	zo_callLater(function()
-
-		local messageParams = CSA:CreateMessageParams(CSA_CATEGORY_SMALL_TEXT, SOUNDS.SKILL_LINE_ADDED)
-		messageParams:SetText( "|c98FB98 Portal UP |r - Group " .. CRHelper.currentPortalGroup )
-		messageParams:SetPriority(CRHelper.PortalSpawn_CSA_Priority)
-		messageParams:SetCSAType(CENTER_SCREEN_ANNOUNCE_TYPE_COLLECTIBLES_UPDATED)
-		CSA:AddMessageWithParams(messageParams)
-	
-		local messageParams2 = CSA:CreateMessageParams(CSA_CATEGORY_SMALL_TEXT, SOUNDS.SKILL_LINE_ADDED)
-		messageParams2:SetText( "|cff5d00 Crushing Darkness is on you! |r")
-		messageParams2:SetPriority(CRHelper.CrushingDarkness_CSA_Priority)
-		CSA:AddMessageWithParams(messageParams2)
-	
-		local messageParams3 = CSA:CreateMessageParams(CSA_CATEGORY_SMALL_TEXT, SOUNDS.SKILL_LINE_ADDED)
-		messageParams3:SetText( "|cffd700 Orbs are UP! |r" )
-		messageParams3:SetPriority(CRHelper.OrbSpawn_CSA_Priority)
-		CSA:AddMessageWithParams(messageParams3)
-	
-	end , 1000)
-
-
-	if ( v == 0 ) then
-		CRHelper.portalTimer = 45
-		CRHelper.CrushingDarknessTimer = 28
-		CRHelper.BanefulMarkTimer = 22
-		CRHelperFrame:SetHidden(false)
-		CRHelperFrame_PortalTimer:SetHidden(false)
-		CRHelperFrame_CrushingDarknessTimer:SetHidden(false)
-		CRHelperFrame_BanefulMarkTimer:SetHidden(false)
-		CRHelper.PortalTimerUpdate()
-		CRHelper.CrushingDarknessTimerUpdate()
-		CRHelper.BanefulMarkTimerUpdate()
-
-		CRHelperFrame_MalevolentCoreCounter:SetText("|t32:32:esoui/art/compass/compass_bg_murderball_purple.dds|t|t32:32:esoui/art/buttons/large_rightarrow_up.dds|t".. math.ceil(CRHelper.MalevolentCoreCounter/2) )
-		CRHelperFrame_MalevolentCoreCounter:SetHidden(false)
-
-		CRHelperFrame_OlorimeSpearCounter:SetText("|t32:32:esoui/art/tutorial/progression_tabicon_solspear_up.dds|t|t32:32:esoui/art/buttons/large_rightarrow_up.dds|t".. CRHelper.OlorimeSpearCounter )
-		CRHelperFrame_OlorimeSpearCounter:SetHidden(false)
-
-
-	elseif ( v == 1 ) then
-		CRHelper.CrushingDarknessTimer = 28
-		CRHelperFrame:SetHidden(false)
-		CRHelperFrame_CrushingDarknessTimer:SetHidden(false)
-		CRHelper.CrushingDarknessTimerUpdate()
-	elseif ( v == 2 ) then
-		CRHelper.portalTimer = 45
-		CRHelperFrame:SetHidden(false)
-		CRHelper.PortalTimerUpdate()
-		CRHelperFrame_PortalTimer:SetHidden(false)
-	elseif ( v == 3 ) then
-		CRHelper.BanefulMarkTimer = 22
-		CRHelperFrame:SetHidden(false)
-		CRHelper.BanefulMarkTimerUpdate()
-		CRHelperFrame_BanefulMarkTimer:SetHidden(false)
-	end
-
 end
 
 -------------------
@@ -463,49 +400,74 @@ function CRHelper.StartOnScreenNotifications()
 end
 ]]
 
-function CRHelper.CombatEvent(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
+local function StopControlAnimation(control)
 
-	if (not CRHelper.trackCombatEvents or not CRHelper.monitoringFight) then return end
+	local controlName = control:GetName()
+	if animationTimelines[controlName] and animationTimelines[controlName]:IsPlaying() then animationTimelines[controlName]:Stop() end
+
+end
+
+local function SlideInControl(control)
+
+	local controlName = control:GetName()
+    local animation, timeline = CreateSimpleAnimation(ANIMATION_TRANSLATE, control)
+	local isValidAnchor, point, relativeTo, relativePoint, offsetX, offsetY = control:GetAnchor()
+	control:SetHidden(false)
+
+	animation:SetTranslateOffsets(offsetX - 250, offsetY, offsetX, offsetY)
+    animation:SetDuration(200)
+
+    timeline:SetPlaybackType(ANIMATION_PLAYBACK_ONE_SHOT)
+    timeline:PlayFromStart()
+
+end
+
+local function BounceControl(control)
+
+	StopControlAnimation(control)
+
+	local controlName = control:GetName()	
+	local isValidAnchor, point, relativeTo, relativePoint, offsetX, offsetY = control:GetAnchor()
+    local timeline = ANIMATION_MANAGER:CreateTimeline()
+
+    local translate1 = timeline:InsertAnimation(ANIMATION_TRANSLATE, control)
+    translate1:SetTranslateOffsets(offsetX - 8, offsetY, offsetX + 8, offsetY)
+    translate1:SetDuration(200)
+
+	local translate2 = timeline:InsertAnimation(ANIMATION_TRANSLATE, control, 200)
+    translate2:SetTranslateOffsets(offsetX + 8, offsetY, offsetX - 8, offsetY)
+    translate2:SetDuration(200)
+
+	timeline:SetPlaybackType(ANIMATION_PLAYBACK_LOOP)
+	timeline:SetPlaybackLoopCount(1000)
+	timeline:PlayFromStart()
+
+	animationTimelines[controlName] = timeline
 	
-	-- Only track non player events (source type 0).
-	if (sourceType == 0) then
+end
 
-		-- skip trash events
-		if (combatEventsBlacklist[string.lower(GetAbilityName(abilityId))]) then return end
+local function FormatHeavyAttackList()
 
-		if (combatEventsBuffer[abilityId] == nil) then
-			combatEventsBuffer[abilityId] = {}
+	local countdownList = {}
+	local countdownListFormatted = {}
+	local t = GetGameTimeMilliseconds()
+
+	for _, value in ipairs(heavyAttackList) do
+		if value[1] > t then
+			table.insert(countdownList, {value[1] - t, value[2]})
 		end
+	end
 
-		local t = GetFrameTimeSeconds()
-
-		-- 10 seconds cooldown for each ability message
-		if (combatEventsBuffer[abilityId][targetUnitId] ~= nil and combatEventsBuffer[abilityId][targetUnitId] > t - 10) then return end
-
-		local targetUnitTag = LUNIT:GetUnitTagForUnitId(targetUnitId)
-		local targetName = LUNIT:GetNameForUnitId(targetUnitId)
-		local targetColor = "FFFFFF"
-
-		if (targetUnitTag ~= '' and targetName ~= '') then
-
-			combatEventsBuffer[abilityId][targetUnitId] = t
-
-			if (AreUnitsEqual('player', targetUnitTag)) then
-
-				targetColor = "00FF00"
-				combatEventsList[abilityId] = true
-
-			elseif (IsUnitPlayer(targetUnitTag)) then
-
-				targetColor = "00BFFF"
-				--if (not combatEventsWhitelist[string.lower(GetAbilityName(abilityId))] and not combatEventsList[abilityId]) then return end -- the only way to remove other players abilities from output...
-				
-			end
-
+	if #countdownList > 0 then
+		table.sort(countdownList, function(a, b) return a[1] < b[1] end)
+		for _, value in ipairs(countdownList) do
+			--local strformat = value > 1000 and "|cFFFFFF%0.1f|r" or "|cFF0000%0.1f|r"
+			local strformat = "|c" .. value[2] .. "%0.1f|r"
+			table.insert(countdownListFormatted, string.format(strformat, value[1] / 1000))
 		end
-
-		d(zo_strformat("|cf49542(<<5>>)|r[<<1>>] <<2>> - |cFF2200<<3>>|r - |cCCCCCC<<4>>|r", abilityId, "|c" .. targetColor .. targetName .. "|r",  GetAbilityName(abilityId), t - combatStartedFrameTime, result))
-
+		return table.concat(countdownListFormatted, " / ")
+	else
+		return nil
 	end
 
 end
@@ -553,14 +515,34 @@ function CRHelper.StartMonitoringFight( )
 	combatStartedFrameTime = GetFrameTimeSeconds()
 end
 
-function CRHelper.StopMonitoringFight( )
+function CRHelper.StopMonitoringFight()
 
 	CRHelper.monitoringFight = false
+	CR.stopTimer = true
+	combatStartedFrameTime = 0
+
+	EVENT_MANAGER:UnregisterForUpdate("CRVoltaicOverloadTimer") -- crutch (if the fight ends while voltaic overload is active, then this timer will continue showing it anyway)
+
+	CR.HideControls()
+
+end
+
+function CR.HideControls()
+
+	CR.FireControlHide()
+	CR.FrostControlHide()
+	CR.ShockControlHide()
+
+	CRInterrupt:SetHidden(true)
+	CRInterrupt_Warning:SetText("")
 
 	CRHelperFrame:SetHidden(true)
-	CRHelper.stopTimer = true
+	CRHelperFrame_PortalTimer:SetText("")
+	CRHelperFrame_PortalTimer:SetHidden(true)
 
-	combatStartedFrameTime = 0
+	LibGlow:HideGlow()
+
+	clipboard:SetHidden(true)
 
 end
 
@@ -571,8 +553,7 @@ function CRHelper.BanefulBarb(eventCode, result, isError, abilityName, abilityGr
 
 	if (result == ACTION_RESULT_BEGIN) then
 
-		CRReticle_Label:SetText("MARK")
-		CRReticle_Label:SetColor(1, 0, 0)
+		CRReticle_Label:SetText("|cFF0000MARK|r")
 		CRReticle:SetHidden(false)
 		PlaySound(SOUNDS.CHAMPION_POINTS_COMMITTED)
 
@@ -583,38 +564,20 @@ function CRHelper.BanefulBarb(eventCode, result, isError, abilityName, abilityGr
 end
 
 -- Spider's heavy attack
-function CRHelper.Corpulence(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
+function CR.Corpulence(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
 
-	if (not CRHelper.savedVariables.trackCorpulence or targetType ~= COMBAT_UNIT_TYPE_PLAYER) then return end
+	if not CRHelper.savedVariables.trackCorpulence or targetType ~= COMBAT_UNIT_TYPE_PLAYER then return end
 
-	if (result == ACTION_RESULT_BEGIN) then
+	if result == ACTION_RESULT_BEGIN then
 
-		CRHelper.corpulenceCount = 1.7
+		table.insert(heavyAttackList, {GetGameTimeMilliseconds() + hitValue - 200, "FF0000"})
 
-		CRReticle_Label:SetText(string.format("HEAVY: |cFF0000%.1f|r", CRHelper.corpulenceCount))
-		CRReticle_Label:SetColor(1, 0.25, 1)
-		CRReticle:SetHidden(false)
+		CR.HeavyAttackTimer()
 		PlaySound(SOUNDS.CHAMPION_POINTS_COMMITTED)
 
-		EVENT_MANAGER:UnregisterForUpdate("CorpulenceTimer")
-		EVENT_MANAGER:RegisterForUpdate("CorpulenceTimer", 100, CRHelper.CorpulenceTick)
+		EVENT_MANAGER:UnregisterForUpdate("CRHeavyAttackTimer")
+		EVENT_MANAGER:RegisterForUpdate("CRHeavyAttackTimer", 100, CR.HeavyAttackTimer)
 
-	end
-
-end
-
-function CRHelper.CorpulenceTick()
-
-	CRHelper.corpulenceCount = CRHelper.corpulenceCount - 0.1
-
-	if (CRHelper.corpulenceCount <= -0.1) then
-		EVENT_MANAGER:UnregisterForUpdate("CorpulenceTimer")
-		CRReticle:SetHidden(true)
-	else
-		local color = CRHelper.corpulenceCount >= 0.5 and "|cFF8C00%.1f|r" or "|cFF0000%.1f|r"
-		CRReticle_Label:SetText(string.format("HEAVY: " .. color, CRHelper.corpulenceCount < 0 and 0 or CRHelper.corpulenceCount))
-		CRReticle_Label:SetColor(1, 0.25, 1)
-		CRReticle:SetHidden(false)
 	end
 
 end
@@ -622,35 +585,18 @@ end
 -- Main Boss Pokeball
 function CRHelper.NocturnalsFavor(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
 
-	if (not CRHelper.savedVariables.trackNocturnalsFavor or targetType ~= COMBAT_UNIT_TYPE_PLAYER) then return end
+	if not CRHelper.savedVariables.trackNocturnalsFavor or targetType ~= COMBAT_UNIT_TYPE_PLAYER then return end
 	
-	if (result == ACTION_RESULT_BEGIN) then
+	if result == ACTION_RESULT_BEGIN then
 
-		CRHelper.nocturnalsFavorCount = 2.2
+		table.insert(heavyAttackList, {GetGameTimeMilliseconds() + hitValue, "FF1493"})
 
-		CRReticle_Label:SetText(string.format("BALL: |cFF0000%.1f|r", CRHelper.nocturnalsFavorCount))
-		CRReticle_Label:SetColor(1, 0.25, 1)
-		CRReticle:SetHidden(false)
+		CR.HeavyAttackTimer()
 		PlaySound(SOUNDS.CHAMPION_POINTS_COMMITTED)
 
-		EVENT_MANAGER:UnregisterForUpdate("NocturnalsFavorTimer")
-		EVENT_MANAGER:RegisterForUpdate("NocturnalsFavorTimer", 100, CRHelper.NocturnalsFavorTick)
+		EVENT_MANAGER:UnregisterForUpdate("CRHeavyAttackTimer")
+		EVENT_MANAGER:RegisterForUpdate("CRHeavyAttackTimer", 100, CR.HeavyAttackTimer)
 
-	end
-
-end
-
-function CRHelper.NocturnalsFavorTick()
-
-	CRHelper.nocturnalsFavorCount = CRHelper.nocturnalsFavorCount - 0.1
-
-	if (CRHelper.nocturnalsFavorCount <= -0.1) then
-		EVENT_MANAGER:UnregisterForUpdate("NocturnalsFavorTimer")
-		CRReticle:SetHidden(true)
-	else
-		CRReticle_Label:SetText(string.format("BALL: |cFF0000%.1f|r", CRHelper.nocturnalsFavorCount < 0 and 0 or CRHelper.nocturnalsFavorCount))
-		CRReticle_Label:SetColor(1, 0.25, 1)
-		CRReticle:SetHidden(false)
 	end
 
 end
@@ -662,8 +608,7 @@ function CRHelper.Razorthorn(eventCode, result, isError, abilityName, abilityGra
 
 	if (result == ACTION_RESULT_EFFECT_GAINED) then
 
-		CRReticle_Label:SetText("ROOTED")
-		CRReticle_Label:SetColor(1, 0, 0)
+		CRReticle_Label:SetText("|cFF0000ROOTED|r")
 		CRReticle:SetHidden(false)
 		PlaySound(SOUNDS.CHAMPION_POINTS_COMMITTED)
 
@@ -675,22 +620,57 @@ function CRHelper.Razorthorn(eventCode, result, isError, abilityName, abilityGra
 
 end
 
--- Shade's Heavy Attack
-function CRHelper.ShadeHeavyAttack(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
+-- Orb projectile
+function CR.MaliciousStrike(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
 
-	if (not CRHelper.savedVariables.trackCorpulence or targetType ~= COMBAT_UNIT_TYPE_PLAYER) then return end
+	if not CRHelper.savedVariables.trackMaliciousStrike or targetType ~= COMBAT_UNIT_TYPE_PLAYER then return end
 
-	if (result == ACTION_RESULT_BEGIN) then
+	if result == ACTION_RESULT_EFFECT_GAINED and hitValue > 1 then
 
-		CRReticle_Label:SetText("HEAVY")
-		CRReticle_Label:SetColor(1, 0.25, 1)
+		CRReticle_Label:SetText("|cFF0000BLOCK|r")
 		CRReticle:SetHidden(false)
+		PlaySound(SOUNDS.TELVAR_MULTIPLIERUP)
+
+		zo_callLater(function() CRReticle:SetHidden(true) end, hitValue + 100)
+
+	end
+
+end
+
+-- Shade's Heavy Attack
+function CR.ShadeHeavyAttack(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
+
+	if not CR.savedVariables.trackCorpulence or targetType ~= COMBAT_UNIT_TYPE_PLAYER then return end
+
+	if result == ACTION_RESULT_BEGIN then
+
+		local color = "FFFFFF"
+		if string.find(sourceName, 'Relequen') then color = "FFFF00"
+		elseif string.find(sourceName, 'Siroria') then color = "FF6600"
+		elseif string.find(sourceName, 'Galenwe') then color = "00FFFF" end
+
+		table.insert(heavyAttackList, {GetGameTimeMilliseconds() + hitValue, color})
+
+		CR.HeavyAttackTimer()
 		PlaySound(SOUNDS.CHAMPION_POINTS_COMMITTED)
 
-		zo_callLater(function()
-			CRReticle:SetHidden(true)
-		end, 2000)
+		EVENT_MANAGER:UnregisterForUpdate("CRHeavyAttackTimer")
+		EVENT_MANAGER:RegisterForUpdate("CRHeavyAttackTimer", 100, CR.HeavyAttackTimer)
 
+	end
+
+end
+
+function CR.HeavyAttackTimer()
+
+	local text = FormatHeavyAttackList()
+
+	if not text or text == "" then
+		EVENT_MANAGER:UnregisterForUpdate("CRHeavyAttackTimer")
+		CRReticle:SetHidden(true)
+	else
+		CRReticle_Label:SetText(string.format('HA: %s', text))
+		CRReticle:SetHidden(false)
 	end
 
 end
@@ -763,15 +743,19 @@ end
 -------------------
 -- Fires a notification when orbs are going to spawn
 -------------------
-function CRHelper.MalevolentCoreGrant(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
+function CR.MalevolentCoreHit(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
 
-	if ( not CRHelper.savedVariables.trackMalevolentCore ) then return end
+	if not CR.savedVariables.trackMalevolentCore then return end
 
-	if ( result == ACTION_RESULT_EFFECT_GAINED ) then
+	if sourceUnitId > 0 and result == ACTION_RESULT_EFFECT_GAINED then
 
-		CRHelper.MalevolentCoreCounter = CRHelper.MalevolentCoreCounter + 1
+		if not malevolentCoreIds[sourceUnitId] then
+			malevolentCoreIds[sourceUnitId] = true
+			malevolentCoreNum = malevolentCoreNum + 1
+		end
+
 		CRHelperFrame:SetHidden(false)
-		CRHelperFrame_MalevolentCoreCounter:SetText("|t32:32:esoui/art/compass/compass_bg_murderball_purple.dds|t|t32:32:esoui/art/buttons/large_rightarrow_up.dds|t".. math.ceil(CRHelper.MalevolentCoreCounter/2) )
+		CRHelperFrame_MalevolentCoreCounter:SetText("|t32:32:esoui/art/compass/compass_bg_murderball_purple.dds|t|t32:32:esoui/art/buttons/large_rightarrow_up.dds|t".. malevolentCoreNum)
 		CRHelperFrame_MalevolentCoreCounter:SetHidden(false)
 
 	end
@@ -805,16 +789,16 @@ function CRHelper.SRealmOpen(eventCode, result, isError, abilityName, abilityGra
 	-- Restart Counters after shadow realm opens
 	CRHelperFrame_MalevolentCoreCounter:SetHidden(true)
 	CRHelperFrame_OlorimeSpearCounter:SetHidden(true)
-	CRHelper.MalevolentCoreCounter = 0
-	CRHelper.OlorimeSpearCounter = 0
 
-	if ( not CRHelper.savedVariables.trackPortalTimer ) then return end
+	CR.OlorimeSpearCounter = 0
+	malevolentCoreIds = {}
+	malevolentCoreNum = 0
 
-	if ( result == ACTION_RESULT_EFFECT_GAINED ) then
+	if not CR.savedVariables.trackPortalTimer then return end
 
-		CRHelper.stopPortalTimer = true
+	if result == ACTION_RESULT_EFFECT_GAINED then
+		CR.stopPortalTimer = true
 		CRHelperFrame_PortalTimer:SetHidden(true)
-
 	end
 
 end
@@ -1392,58 +1376,73 @@ function CRHelper:UnregisterVoltaicCurrent()
 
 end
 
-function CRHelper.VoltaicCurrent(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
+function CR.VoltaicCurrent(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
 
-	if (not CRHelper.savedVariables.trackVoltaicOverload) then return end
+	if not CR.savedVariables.trackVoltaicOverload or targetType ~= COMBAT_UNIT_TYPE_PLAYER then return end
 
-	-- If it's not on yourself, then just ignore it
-	if (targetType ~= COMBAT_UNIT_TYPE_PLAYER) then return end
+	if result == ACTION_RESULT_EFFECT_GAINED then
 
-	if (result == ACTION_RESULT_EFFECT_GAINED) then
-		CRHelper.ShockControlShow("SHOCK INC")
+		voltaicCurrentEnd = GetGameTimeMilliseconds() + 3000
+		CR.VoltaicCurrentTimer()
 		PlaySound(SOUNDS.DUEL_START)
-	elseif (result == ACTION_RESULT_EFFECT_FADED) then
-		CRHelper.ShockControlHide()
+		SlideInControl(CRShock)
+
+		EVENT_MANAGER:UnregisterForUpdate("CRVoltaicCurrentTimer")
+		EVENT_MANAGER:RegisterForUpdate("CRVoltaicCurrentTimer", 100, CR.VoltaicCurrentTimer)
+
 	end
 
 end
 
-function CRHelper.VoltaicOverload(eventCode, changeType, effectSlot, effectName, unitTag, beginTime, endTime, stackCount, iconName,  buffType, effectType, abilityType, statusEffectType)
+function CR.VoltaicCurrentTimer()
 
-	if (not CRHelper.savedVariables.trackVoltaicOverload) then return end
+	local t = voltaicCurrentEnd - GetGameTimeMilliseconds()
 
-	-- If it's not on yourself, then just ignore it
-	if (unitTag ~= "player") then return end
+	if t < 0 then
+		EVENT_MANAGER:UnregisterForUpdate("CRVoltaicCurrentTimer")
+		CR.ShockControlHide()
+	else
+		CR.ShockControlShow(string.format('SHOCK: |cFF0000%0.1f|r', t / 1000))
+	end
 
-	if (changeType == EFFECT_RESULT_FADED) then
+end
 
-		CRHelper.shockStarted = false
-		CRHelper.ShockTimerStop()
+function CR.VoltaicOverload(eventCode, changeType, effectSlot, effectName, unitTag, beginTime, endTime, stackCount, iconName,  buffType, effectType, abilityType, statusEffectType)
+
+	if not CR.savedVariables.trackVoltaicOverload or unitTag ~= "player" then return end
+
+	if changeType == EFFECT_RESULT_FADED then
+
+		CR.shockStarted = false
+		StopControlAnimation(CRShock)
+
 		CRShock_Label:SetText(string.format("|c98FB98%s|r", "CAN SWAP"))
-		CRHelper.FadeOutControl(CRShock, 1000)
+		CR.FadeOutControl(CRShock, 1000)
 
 		LibGlow:HideGlow()
 
 		clipboard:SetHidden(true)
 
-    elseif (changeType == EFFECT_RESULT_GAINED) or (changeType == EFFECT_RESULT_UPDATED) then
+    elseif changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_UPDATED then
 
-		CRHelper.shockStarted = true
-		CRHelper.swapped = false
-		CRHelper.EnableShockTimer(beginTime, endTime)
+		CR.shockStarted = true
+		CR.swapped = false
+		CR.EnableShockTimer(beginTime, endTime)
 
     end
 
 end
 
-function CRHelper.WeaponSwap()
+function CR.WeaponSwap()
 
-	if (CRHelper.shockStarted and not CRHelper.swapped) then
+	if CRHelper.shockStarted and not CRHelper.swapped then
 
 		CRHelper.swapped = true
 		CRHelper.ShockControlShow("NO SWAP: " .. string.format("%01d", CRHelper.shockCount))
 
-		clipboard:SetHidden(false)
+		if CRHelper.savedVariables.voltaicOverloadExtra then
+			clipboard:SetHidden(false)
+		end
 
 		if (CRHelper.savedVariables.voltaicOverloadScreenGlow) then LibGlow:ShowGlow() end
 
@@ -1456,47 +1455,35 @@ function CRHelper.WeaponSwap()
 
 end
 
-function CRHelper.EnableShockTimer(beginTime, endTime)
+function CR.EnableShockTimer(beginTime, endTime)
 
-	EVENT_MANAGER:UnregisterForUpdate("ShockTimer")
+	EVENT_MANAGER:UnregisterForUpdate("CRVoltaicOverloadTimer")
+	EVENT_MANAGER:UnregisterForUpdate("CRVoltaicCurrentTimer")
 
-	CRHelper.shockCount = math.ceil(endTime - beginTime)
-
-	CRHelper.ShockControlShow(CRHelper.swapped and "NO SWAP: " .. string.format("%01d", self.shockCount) or "SWAP NOW!")
+	voltaicOverloadEnd = endTime
 
 	PlaySound(SOUNDS.DUEL_START)
+	CR.ShockTimerTick()
+	BounceControl(CRShock)
 
-	EVENT_MANAGER:RegisterForUpdate("ShockTimer", 1000, CRHelper.ShockTimerTick)
+	EVENT_MANAGER:RegisterForUpdate("CRVoltaicOverloadTimer", 100, CR.ShockTimerTick)
 
 end
 
-function CRHelper.ShockTimerTick()
+function CR.ShockTimerTick()
 
-	CRHelper.shockCount = CRHelper.shockCount - 1
+	local t = voltaicOverloadEnd - GetFrameTimeSeconds()
 
-	if (CRHelper.shockCount >=0) then
-		CRHelper.ShockControlShow(CRHelper.swapped and "NO SWAP: " .. string.format("%01d", CRHelper.shockCount) or "SWAP NOW!")
-		PlaySound(SOUNDS.COUNTDOWN_TICK)
+	if t < 0 then
+		EVENT_MANAGER:UnregisterForUpdate("CRVoltaicOverloadTimer")
+	else
+		CR.ShockControlShow(CR.swapped and string.format("NO SWAP: |cFF0000%0.1f|r", t) or "SWAP NOW!")
 	end
 
 end
 
-function CRHelper.ShockTimerStop()
-
-	EVENT_MANAGER:UnregisterForUpdate("ShockTimer")
-	CRHelper.shockCount = 0
-
-end
-
-function CRHelper.ShockTimerStopAndHide()
-
-	CRHelper.ShockTimerStop()
-	CRHelper.ShockControlHide()
-
-end
-
 -- Show shock control with optional text
-function CRHelper.ShockControlShow(text)
+function CR.ShockControlShow(text)
 
 	CRShock:SetHidden(false)
 
@@ -1506,7 +1493,7 @@ function CRHelper.ShockControlShow(text)
 
 end
 
-function CRHelper.ShockControlHide()
+function CR.ShockControlHide()
 
 	CRShock:SetHidden(true)
 
@@ -1527,12 +1514,12 @@ function CRHelper.ShadowSplashCast(eventCode, result, isError, abilityName, abil
 
 		CRHelper.shadowSplashCount = CRHelper.shadowSplashDuration
 
-		CRInterrupt_Warning:SetText(string.format("Interrupt: |cFF0000%d|r", CRHelper.shadowSplashCount))
+		CRInterrupt_Warning:SetText(string.format("Interrupt: |cFF0000%.1f|r", CRHelper.shadowSplashCount))
 		CRInterrupt:SetHidden(false)
 		PlaySound(SOUNDS.SKILL_LINE_ADDED)
 
 		EVENT_MANAGER:UnregisterForUpdate("ShadowSplashTimer")
-		EVENT_MANAGER:RegisterForUpdate("ShadowSplashTimer", 900, CRHelper.ShadowSplashTimerTick)
+		EVENT_MANAGER:RegisterForUpdate("ShadowSplashTimer", 100, CRHelper.ShadowSplashTimerTick)
 
 	elseif result == ACTION_RESULT_EFFECT_FADED then
 
@@ -1544,15 +1531,14 @@ end
 
 function CRHelper.ShadowSplashTimerTick()
 
-	CRHelper.shadowSplashCount = CRHelper.shadowSplashCount - 1
+	CRHelper.shadowSplashCount = CRHelper.shadowSplashCount - 0.1
 
 	if CRHelper.shadowSplashCount < 0 then
 		EVENT_MANAGER:UnregisterForUpdate("ShadowSplashTimer")
 		CRHelper.shadowSplashCount = 0
-	else
-		CRInterrupt_Warning:SetText(string.format("Interrupt: |cFF0000%d|r", CRHelper.shadowSplashCount))
 	end
 
+	CRInterrupt_Warning:SetText(string.format("Interrupt: |cFF0000%.1f|r", CRHelper.shadowSplashCount))
 end
 
 ----- /SHADOW SPLASH INTERRUPT -----
@@ -1719,26 +1705,13 @@ function CRHelper:unlockUI()
 
 	if (CRHelper.savedVariables.voltaicOverloadScreenGlow) then LibGlow:ShowGlow() end
 
-	clipboard:SetHidden(false)
+	if CRHelper.savedVariables.voltaicOverloadExtra then clipboard:SetHidden(false) end
 
 end
 
 function CRHelper:lockUI()
 
-	CRHelper.FireControlHide()
-	CRHelper.FrostControlHide()
-	CRHelper.ShockControlHide()
-
-	CRInterrupt:SetHidden(true)
-	CRInterrupt_Warning:SetText("")
-
-	CRHelperFrame:SetHidden(true)
-	CRHelperFrame_PortalTimer:SetText("")
-	CRHelperFrame_PortalTimer:SetHidden(true)
-
-	LibGlow:HideGlow()
-
-	clipboard:SetHidden(true)
+	CR.HideControls()
 
 end
 

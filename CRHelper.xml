@@ -116,7 +116,7 @@
 	  <Dimensions x="200" y="50" />
       <Anchor point="CENTER" relativeTo="GuiRoot" relativePoint="CENTER" offsetX="0" offsetY="0" />
       <Controls>
-        <Label name="$(parent)_Label" width="200" height="50" font="$(BOLD_FONT)|$(KB_48)|thick-outline" inheritAlpha="true" color="FF0000" wrapMode="TRUNCATE" verticalAlignment="CENTER" horizontalAlignment="CENTER">
+        <Label name="$(parent)_Label" width="200" height="50" font="$(BOLD_FONT)|$(KB_40)|thick-outline" inheritAlpha="true" color="FF00FF" wrapMode="TRUNCATE" verticalAlignment="CENTER" horizontalAlignment="CENTER">
           <Anchor point="CENTER" relativeTo="$(parent)" relativePoint="CENTER" />
         </Label>
       </Controls>

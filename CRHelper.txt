@@ -1,6 +1,6 @@
 ## Title: Immersive Fishing
-## APIVersion: 100023
-## Author: ZOS_GinaBruno
+## APIVersion: 100025
+## Author: RomarQ, Andy.s
 ## SavedVariables: CRHelperSavedVariables
 ## OptionalDependsOn: LibAddonMenu-2.0
 

@@ -194,6 +194,16 @@ function CRHelper.buildMenu( savedVars )
 			end
 		},
 		{
+			type = "checkbox",
+			name = "Malicious Strike",
+			tooltip = "Projectile from a Malicious Sphere",
+            default = settings.trackMaliciousStrike,
+			getFunc = function() return CRHelper.savedVariables.trackMaliciousStrike end,
+			setFunc = function(value)
+				CRHelper.savedVariables.trackMaliciousStrike = value
+			end
+		},
+		{
 			type = "header",
 			name = "Timers"
 		},
@@ -352,15 +362,45 @@ function CRHelper.buildMenu( savedVars )
 			width = "full",
 			disabled = function() return not CRHelper.savedVariables.voltaicOverloadScreenGlowSize end,
 		},
-
+		{
+			type = "checkbox",
+			name = "Extra",
+            default = settings.voltaicOverloadExtra,
+			getFunc = function() return CRHelper.savedVariables.voltaicOverloadExtra end,
+			setFunc = function(value)
+				CRHelper.savedVariables.voltaicOverloadExtra = value
+			end
+		},
+		--[[
 		{
 			type = "header",
 			name = "Roaring Flare Execute Setup"
 		},
 		{
 			type = "description",
-			text = "Healers positions is in alphabetical order, they must have healer role to work."
+			text = "Players with fixed positions on execute should set the following roles:"
 		},
+		{
+			type = "description",
+			title = "Healer Left\n",
+			text = "|t64:64:esoui/art/lfg/lfg_healer_up_64.dds|t"
+		},
+		{
+			type = "description",
+			title = "Healer Right\n",
+			text = "|t64:64:esoui/art/lfg/lfg_healer_up_64.dds|t |t64:64:esoui/art/lfg/lfg_dps_up_64.dds|t"
+		},
+		{
+			type = "description",
+			title = "Tank Right\n",
+			text = "|t64:64:esoui/art/lfg/lfg_tank_up_64.dds|t |t64:64:esoui/art/lfg/lfg_dps_up_64.dds|t"
+		},
+		{
+			type = "description",
+			title = "Tank Left\n",
+			text = "|t64:64:esoui/art/lfg/lfg_tank_up_64.dds|t |t64:64:esoui/art/lfg/lfg_healer_up_64.dds|t"
+		}
+		-]]
 	}
 
     LAM:RegisterOptionControls(CRHelper.name.."Options", options)
